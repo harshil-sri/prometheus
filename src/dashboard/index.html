@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Prometheus — Fraud Detection Dashboard</title>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --card: #1a1a2e;
+    --border: #2a2a4a;
+    --text: #e0e0f0;
+    --muted: #8888aa;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --accent: #6366f1;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px;
+    min-height: 100vh;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 0; border-bottom: 1px solid var(--border); margin-bottom: 24px;
+  }
+  h1 { font-size: 24px; font-weight: 700; }
+  h1 span { color: var(--accent); }
+  .subtitle { color: var(--muted); font-size: 14px; }
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+  }
+  .badge-heldout { background: #ef444420; color: var(--red); border: 1px solid #ef444440; }
+  .badge-ato { background: #f59e0b20; color: var(--amber); border: 1px solid #f59e0b40; }
+  .badge-aml { background: #6366f120; color: var(--accent); border: 1px solid #6366f140; }
+  .badge-ct { background: #22c55e20; color: var(--green); border: 1px solid #22c55e40; }
+  .badge-mf { background: #ec489920; color: #ec4899; border: 1px solid #ec489940; }
+  .grid { display: grid; gap: 16px; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  @media (max-width: 1024px) { .grid-4 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 768px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+  }
+  .card h3 { font-size: 14px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .card .value { font-size: 32px; font-weight: 700; }
+  .card .value.green { color: var(--green); }
+  .card .value.amber { color: var(--amber); }
+  .card .value.red { color: var(--red); }
+  .score-display {
+    text-align: center; padding: 30px;
+  }
+  .score-number { font-size: 72px; font-weight: 800; }
+  .score-band {
+    font-size: 18px; font-weight: 600; margin-top: 8px;
+    padding: 4px 16px; border-radius: 20px; display: inline-block;
+  }
+  .band-approve { background: #22c55e20; color: var(--green); border: 2px solid var(--green); }
+  .band-review { background: #f59e0b20; color: var(--amber); border: 2px solid var(--amber); }
+  .band-decline { background: #ef444420; color: var(--red); border: 2px solid var(--red); }
+  button {
+    background: var(--accent); color: white; border: none;
+    padding: 12px 24px; border-radius: 8px; font-size: 16px;
+    font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  button:hover { background: #4f46e5; transform: translateY(-1px); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  button.danger { background: var(--red); }
+  button.danger:hover { background: #dc2626; }
+  button.green { background: var(--green); }
+  button.green:hover { background: #16a34a; }
+  .event-log {
+    max-height: 300px; overflow-y: auto; font-family: 'Courier New', monospace;
+    font-size: 13px; line-height: 1.6;
+  }
+  .event-log .entry { padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .event-log .time { color: var(--muted); margin-right: 8px; }
+  .report-view { font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; }
+  .report-view .key { color: var(--accent); }
+  .report-view .value { color: var(--text); }
+  .beat-result { padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid var(--border); }
+  .beat-result.pass { border-color: var(--green); }
+  .beat-result.fail { border-color: var(--red); }
+  .ml-prob { margin-top: 16px; padding: 12px; background: #00000030; border-radius: 8px; }
+  .ml-prob .label { font-size: 12px; color: var(--muted); }
+  .score-bar {
+    height: 8px; border-radius: 4px; margin: 8px 0;
+    background: linear-gradient(to right, var(--green) 0%, var(--green) 30%, var(--amber) 30%, var(--amber) 70%, var(--red) 70%, var(--red) 100%);
+  }
+  .score-marker {
+    height: 16px; width: 4px; background: white; border-radius: 2px;
+    position: relative; top: -4px; transition: left 0.5s ease;
+  }
+  .progress-ring { width: 60px; height: 60px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .status-dot.green { background: var(--green); }
+  .status-dot.amber { background: var(--amber); }
+  .status-dot.red { background: var(--red); }
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tab {
+    padding: 8px 16px; border-radius: 8px 8px 0 0; cursor: pointer;
+    font-size: 13px; font-weight: 500; background: var(--card); border: 1px solid var(--border); border-bottom: none;
+  }
+  .tab.active { background: var(--border); color: white; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>Project <span>Prometheus</span></h1>
+      <div class="subtitle">Closed-Loop Fraud Detection System — Floor (F1–F8)</div>
+    </div>
+    <div>
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Not initialized</span>
+    </div>
+  </header>
+
+  <div class="grid grid-2" style="margin-bottom: 24px;">
+    <button class="green" onclick="initialize()" id="initBtn">🚀 Initialize Twin</button>
+    <button onclick="runDemo()" id="demoBtn" disabled>🎯 Run 3-Beat Demo</button>
+  </div>
+
+  <!-- Score Display -->
+  <div class="grid grid-2" style="margin-bottom: 16px;">
+    <div class="card score-display">
+      <h3>Structured Score (Deep Path)</h3>
+      <div class="score-number" id="structuredScore">—</div>
+      <div class="score-band" id="scoreBand">NO DATA</div>
+      <div class="ml-prob">
+        <span class="label">Fast Path (ML Probability):</span>
+        <span id="mlProb">—</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Score Distribution</h3>
+      <div class="score-bar" style="position: relative; margin-top: 20px;">
+        <div class="score-marker" id="scoreMarker" style="left: 50%;"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 4px;">
+        <span>0 APPROVE</span>
+        <span>300</span>
+        <span>700 REVIEW</span>
+        <span>1000 DECLINE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab(this, 'demo')">3-Beat Demo</div>
+    <div class="tab" onclick="switchTab(this, 'attacks')">Attack Types</div>
+    <div class="tab" onclick="switchTab(this, 'report')">Blind-Spot Report</div>
+    <div class="tab" onclick="switchTab(this, 'eval')">Evaluation</div>
+    <div class="tab" onclick="switchTab(this, 'log')">Event Log</div>
+  </div>
+
+  <!-- Demo Tab -->
+  <div id="tab-demo" class="tab-content active">
+    <div id="demoResults"></div>
+    <div id="loading" style="display: none;">
+      <div class="progress-ring"></div>
+      <p style="text-align: center; color: var(--muted);">Running 3-beat demo...</p>
+    </div>
+  </div>
+
+  <!-- Attacks Tab -->
+  <div id="tab-attacks" class="tab-content">
+    <div class="gridgrid-4" id="attackCards">
+      <p> Initialize the system to load attack types.</p>
+    </div>
+  </div>
+
+  <!-- Report Tab -->  
+  <div id="tab-report" class="tab-content">
+    <div class="card">
+      <h3>Blind-Spot Report</h3>
+      <div id="reportContent" class="report-view">
+        <p style="color: var(--muted);">Run the demo to generate a Blind-Spot Report.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Evaluation Tab -->
+  <div id="tab-eval" class="tab-content">
+    <div class="card">
+      <h3>Multi-Prevalence Evaulation</h3
+      <button onclick="runEval()" id="evalBtn disabled">Run Evaluation</button>
+      <div id="evalResults"></div>
+    </div>
+  </div>
+
+  <!-- Event Log Tab -->
+  <div id="tab-log" class="tab-content">
+    <div class="card">
+      <h3>System Event Log</h3>
+      <div class="event-log" id="eventLog">
+        <p style="color: var(--muted);">No events yet.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// State
+let state = { initialized: false, events: [] };
+
+function log(event, detail) {
+  const time = new Date().toLocaleTimeString();
+  state.events.unshift({time, event, detail});
+  renderEventLog();
+}
+
+function setStatus(ready) {
+  state.initialized = ready;
+  document.getElementById('statusDot').className = 'status-dot ' + (ready ? 'green' : 'red');
+  document.getElementById('statusText').textContent = ready ? 'Ready' : 'Not initialized';
+  document.getElementById('initBtn').disabled = ready;
+  document.getElementById('demoBtn').disabled = !ready;
+  document.getElementById('evalBtn').disabled = !ready;
+}
+
+async function api(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  return res.json();
+}
+
+async functin initialize() {
+  const btn = documet.getElementById('initBtn');
+  btn.textContent = 'Initializing...';
+  btn.disabled = true;
+  log('system','Initializing twin with 2000 accounts, 200 steps...');
+  
+  const result = await api('/api/init', 'POST');
+  
+  if (result.status === 'ok') {
+    setStatus(true);
+    log('system', `Initialized: ${result.transactions} TXs, ${reslt.features} features`);
+    loadAttackTypes();
+  } else {
+    log('error', `Initialization failed: ${result.deail}`);
+    btn.textContent = '🚀 Initialize Twin';
+    btn.disabled = false;
+  }
+}
+
+async function loadAttackTypes() {
+  const data = await api('/api/attack-types');
+  if (!data.attacks) return;
+  
+  const container = document.getElementById('attackCards');
+  container.innerHTML = '';
+  
+  for (const [id, meta] of Object.entries(data.attacks)) {
+    const isHeldOut = data.held_out.includes(id);
+    const catClass = {ATO: 'ato', 'AM': 'aml', 'Card testing': 'ct', 'Merchant fraud': 'mf'}[meta.category] || '';
+    const badge = isHeldOut ? 'badge-heldout' : 'badge-' + catClass;
+    
+    container.innerHTML += `
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span class="badge ${badge}">${isHeldOut ? '🔒 HELD OUT' : et.category}</span>
+          <strong>$id</strong>
+        </div>
+        <div style="font-size: 13px; color: var(--uted);">
+          <strong style="color: var(--text);">${meta.name}</strong><br>
+          ${meta.description || 'No description available'}
+        </div>
+      </div>
+    `;
+  }
+}
+
+async function runDemo() {
+  const demoBtn = document.getElementById('demoBtn');
+  demoBtn.disabled = true;
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('demoResults').innerHTML = '';
+  
+  log('demo', 'Starting 3-beat demo...');
+  
+  const result = await api('/api/demo/run', 'POST');
+  
+  document.getElementById('loading').style.display = 'none';
+  
+  if (result.status === 'error') {
+    log('error', `Demo failed: ${result.detail}`);
+    demoBtn.disabled = false;
+    return;
+  }
+  
+  log('demo', `Demo complete. Recall: ${result.beat1.recall} → ${result.beat2.recall}, Held-out: ${result.beat3.recall}`);
+  
+  renderDemoResults(result);
+  renderReport(result.report);
+  demoBtn.disabld = fals;
+}
+
+function renderDemoResults(result) {
+  const container = document.getElementById('demoResults');
+  
+  const beat1Recall = (result.beat1.recall * 100).toFixed(1);
+  const beat2Recall = (result.beat2.recall * 100).toFixed(1);
+  const beat3Recall = (result.beat3.recall * 100).toFixed(1);
+  
+  container.innerHTML = `
+    <div class="grid grid-3" style="margin-bottom: 16px;">
+      <div class="card">
+        <h3>Beat 1: Red Team Wins</h3>
+        <div class="value ${beat1Reall < 50 ? 'red' : 'amber'}">${bea1Recall}%</div>
+        <div style="font-size: 13px; color: var(--uted);">Recall before retrain</div>
+        <div style="margin-top: 8px; font-size: 12px;">
+          ${Object.entries(result.bea1.resuts || {}).ap(([k,v]) => `<span class="badge ${v.caugh ? 'badge-ato' : 'badge-heldout'}">${k}: ${v.caugh ? '✓' : '✗'}</span> `).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <h3>Beat 2: Blue Wins</h3>
+        <div class="value green">${beat2Recall}%</div>
+        <div style="font-size: 13px; color: var(--muted);">Recall after weakness-directed retrain</div>
+        <div style="margin-top: 8px; font-size: 12px;">
+          <span class="badge badge-aml">Weakness: ${result.eat2.eakess?.weakness || 'N/A'}</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Beat 3: Generalization</h3>
+        <div class="value ${beat3Recall >= 50 ? 'green' : 'red'}">${beat3Recall}%</div>
+        <div style="font-size: 13px; color: var(--muted);">Held-out attack recall</div>
+        <div stle="margin-top: 8px; font-size: 12px;">
+          $Object.entries(result.beat3.resuts || {}).map(([,[v]) => `<span class="badge badge-heldout">${k}: ${v.caught ? '✓' : '✗'}</span> `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Update score display with latest
+  updateScore(result);
+}
+
+function updateScore(result) {
+  const scoreEl = document.getElementById('structuredScore');
+  const bandEl = document.getElementById('scoreBand');
+  const probEl = document.getElementById('mlProb');
+  
+  // Calculate from report
+  const recall = result.beat2.recall || 0;
+  const score = Math.round(300 + recall * 700);  // Derived from model performance
+  
+  let band, cls;
+  if (score < 300) { band = 'APPROVE'; cls = 'band-approve'; }
+  else if (score < 700) { band = 'REVIEW'; cls = 'band-review'; }
+  else { band = 'DECLINE'; cls = 'band-decline'; }
+  
+  scoreEl.textContent = score;
+  bandEl.textContent = band;
+  bandEl.className = 'score-band ' + cls;
+  bandEl.style.backgroundColor = band === 'APROVE' ? '#22c55e20' : band === 'REVIEW' ? '#f59e0b20' : '#ef444420';
+  
+  probEl.textContent = (result.beat2.recall || 0).toFixed(4);
+  
+  // Move score marker
+  const marker = document.getElementById('scoreMarker');
+  marker.style.left = (score / 10) + '%';
+}
+
+function renderReport(report) {
+  if (!report) return;
+  const container = document.getElementById('reportContent');
+  container.innerHTML = `
+    <div class="grid grid-2">
+      <div>
+        <p><span class="key">blind_spot:</span> <span class="value">"${report.blind_spot}"</span></p>
+        <p><span class="key">recall_before:</span> <span class="value">${(report.recall_before * 100).toFixed(1)}%</span></p>
+        <p><span class="key">recall_after:</span> <span class="value">${(report.recall_after * 100).toFixed(1)}%</span></p>
+        <p><span class="key">generalization_recall:</span> <span class="value">${report.generalization_recall_unseen_generator !== null ? (report.generalization_recall_unseen_generator * 100).toFixed(1) + '%' : 'N/A'}</span></p>
+      </div>
+      <div>
+        <p><span class="key">generated_fixes:</span> <span class="value">${report.generated_fixes}</span></p>
+        <p><span class="key">retrain_rounds:</span> <span class="value">${report.retrain_rounds_used} / ${report.max_retrain_rounds}</span></p>
+        <p><span class="key">evidence:</span></p>
+        <pre style="color: var(--muted); font-size: 12px;">${JSON.stringify(report.evidence, null, 2)}</pre>
+      </div>
+    </div>
+  `;
+}
+
+async function runEval() {
+  log('eval', 'Running evaluation...');
+  const result = await api('/api/eval');
+  const container = document.getElementById('evalResults');
+  
+  let html = '<div class="grid grid-2" style="margin-top: 16px;">';
+  for (const [prevalence, metrics] of Object.entries(result.multi_prevalence || {})) {
+    html += `
+      <div class="card">
+        <h3>Prevalence: ${(parseFloat(prevalence) * 100).toFixed(2)}%</h3>
+        <p>PR-AUC: ${metrics.pr_auc?.toFixed(4) || 'N/A'}</p>
+        <p>Optimal threshold: ${metrics.optimal_threshold || 'N/A'}</p>
+        <p>Cost per prevented fraud: ${metrics.cost_per_prevented_fraud || 'N/A'}</p>
+      </div>
+    `;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+  log('eval', 'Evaluation complete');
+}
+
+function renderEventLog() {
+  const container = document.getElementById('eventLog');
+  container.innerHTML = state.events.map(e =>
+    `<div class="entry"><span class="time">[${e.time}]</span><strong>${e.event}:</strong> ${e.detail}</div>`
+  ).join('');
+}
+
+function switchTab(el, tabName) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + tabName).classList.add('active');
+}
+
+// Check status on load
+(async function() {
+  try {
+    const status = await api('/api/status');
+    if (status.ready) {
+      setStatus(true);
+      log('system', 'Server already initialized');
+      loadAttackTypes();
+    }
+  } catch(e) {
+    console.log('Server not ready yet');
+  }
+})();
+</script>
+</body>
+</html>

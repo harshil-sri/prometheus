@@ -367,7 +367,21 @@ def build_graph_data(transactions, world_state=None):
 
     x = torch.tensor(x_rows, dtype=torch.float)
 
-    return Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+    # ---- Node labels (1 if any fraud TX involves this node) ----
+    node_fraud = defaultdict(bool)
+    for tx in transactions:
+        if tx.get('is_fraud'):
+            f = str(tx['from'])
+            t = str(tx.get('to', ''))
+            if f in node_to_idx:
+                node_fraud[f] = True
+            if t in node_to_idx:
+                node_fraud[t] = True
+
+    y_rows = [1.0 if node_fraud.get(nid, False) else 0.0 for nid in internal_nodes]
+    y = torch.tensor(y_rows, dtype=torch.float)
+
+    return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
 
 
 def get_node_features(account_id, world_state):
