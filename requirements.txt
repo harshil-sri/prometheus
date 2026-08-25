@@ -1,0 +1,15 @@
+# Project Prometheus — Closed-Loop Fraud Detection System
+# Floor (F1-F8) dependencies
+# Python 3.12+
+
+networkx>=3.0
+xgboost>=2.0
+torch>=2.0
+torch-geometric>=2.4
+scikit-learn>=1.2
+shap>=0.45
+fastapi>=0.100
+uvicorn>=0.20
+numpy>=1.24
+requests>=2.28
+python-multipart>=0.0.6
