@@ -649,6 +649,7 @@ def generate_training_attacks(
             attack_type=attack_id,
             actions=action_log,
             spec=spec.to_dict(),
+            trajectory_id=trajectory_id,
         )
         results[attack_id] = traj["trajectory_id"]
 

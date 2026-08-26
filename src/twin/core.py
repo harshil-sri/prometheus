@@ -323,9 +323,9 @@ class WorldState:
     # ------------------------------------------------------------------
 
     def log_trajectory(self, attack_type: str, actions: List[Dict],
-                       spec: Dict[str, Any]) -> Dict[str, Any]:
+                       spec: Dict[str, Any], trajectory_id: Optional[str] = None) -> Dict[str, Any]:
         """Log an attack trajectory and return a plain dict."""
-        traj_id = self.next_trajectory_id()
+        traj_id = trajectory_id or self.next_trajectory_id()
         traj = {
             "trajectory_id": traj_id,
             "attack_type": attack_type,

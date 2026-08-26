@@ -136,6 +136,7 @@ class AttackCompiler:
         world_actions = plan.get("world_actions", [])
         attack_id = spec.get("attack_id", f"ATTACK_{w._next_account}")
         attack_type = spec.get("attack_type", "unknown")
+        trajectory_id = w.next_trajectory_id()
 
         action_log: List[Dict[str, Any]] = []
 
@@ -198,6 +199,7 @@ class AttackCompiler:
                     category="p2p",
                     is_fraud=False,
                     attack_id=attack_id,
+                    trajectory_id=trajectory_id,
                 )
                 action_log.append({
                     "step": actual_step,
@@ -226,6 +228,7 @@ class AttackCompiler:
                             category="retail",
                             is_fraud=False,
                             attack_id=attack_id,
+                            trajectory_id=trajectory_id,
                         )
                         camouflage_txs.append(tx["tx_id"])
                 action_log.append({
@@ -248,6 +251,7 @@ class AttackCompiler:
                     category="p2p",
                     is_fraud=True,
                     attack_id=attack_id,
+                    trajectory_id=trajectory_id,
                 )
                 action_log.append({
                     "step": actual_step,
@@ -270,6 +274,7 @@ class AttackCompiler:
                     category="p2p",
                     is_fraud=True,
                     attack_id=attack_id,
+                    trajectory_id=trajectory_id,
                 )
                 action_log.append({
                     "step": actual_step,
@@ -286,6 +291,7 @@ class AttackCompiler:
                 kwargs["world"] = w
                 kwargs["rng"] = self.rng
                 kwargs["attack_id"] = attack_id
+                kwargs["trajectory_id"] = trajectory_id
                 if "step_offset" in action:
                     kwargs.setdefault("step_offset", action["step_offset"])
                 tx_ids = run_twin_typology(typology_name, **kwargs)
@@ -351,6 +357,7 @@ class AttackCompiler:
             attack_type=attack_type,
             actions=action_log,
             spec=spec,
+            trajectory_id=trajectory_id,
         )
         return traj["trajectory_id"]
 
