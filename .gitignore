@@ -27,3 +27,8 @@ scratch/
 
 # Antigravity artifacts
 .gemini/
+HANDOFF.md
+Prometheus_Walkthrough.docx
+demo.json
+run_test.py
+src/generate_docx.py
