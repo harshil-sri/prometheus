@@ -7,6 +7,8 @@ import random
 from typing import Any, Dict, List, Optional
 from pathlib import Path
 
+import numpy as np
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -83,13 +85,14 @@ def initialize(seed: int = 42, num_accounts: int = 2000, num_steps: int = 200):
         twin.run()
 
         compiler = AttackCompiler(twin, seed=seed)
+        generate_training_attacks(compiler, twin.world)
 
         # Build features and train Blue Team
         X, y, fnames = compute_features(twin.world.transactions, twin.world)
         xgb = XGBFraudDetector(seed=seed)
         xgb.fit(X, y, fnames)
 
-        data = build_graph_data(twin.world.transactions, twin.world)
+        data, node_to_idx = build_graph_data(twin.world.transactions, twin.world)
         gnn = None
         if data is not None:
             gnn = GNNFraudDetector(in_channels=data.x.shape[1], seed=seed)
@@ -98,12 +101,19 @@ def initialize(seed: int = 42, num_accounts: int = 2000, num_steps: int = 200):
         # Meta-model
         meta = MetaModel(seed=seed)
         xgb_probs = xgb.predict_proba(X)
-        gnn_probs = gnn.predict_proba(data) if gnn is not None else np.full(len(X), 0.5)
-        X_meta = np.column_stack([xgb_probs, gnn_probs[:len(X)]])
+        if gnn is not None and data is not None:
+            node_scores = gnn.predict_proba(data)[:, 1]
+            gnn_tx_scores = np.array([
+                node_scores[node_to_idx[str(tx['from'])]] if str(tx['from']) in node_to_idx else 0.5
+                for tx in twin.world.transactions
+            ])
+        else:
+            gnn_tx_scores = np.full(len(X), 0.5)
+        X_meta = np.column_stack([xgb_probs, gnn_tx_scores])
         meta.fit(X_meta, y)
 
         # Sensitivity engine
-        sensitivity = SensitivityEngine(xgb_model=xgb.model, gnn_model=gnn, feature_names=fnames)
+        sensitivity = SensitivityEngine(xgb_model=xgb.model, gnn_model=gnn.model if gnn else None, feature_names=fnames)
 
         # Feedback loop
         feedback = FeedbackLoop(twin, compiler, None, sensitivity)
@@ -146,6 +156,26 @@ def run_demo():
         sensitivity = DEMO_STATE["sensitivity"]
         import numpy as np
 
+        def _score_txs(txs):
+            if not txs: return 0.0
+            X_a, _, _ = compute_features(txs, twin.world)
+            if len(X_a) == 0: return 0.0
+            xgb_probs = bt["xgb"].predict_proba(X_a)
+            data, node_to_idx = build_graph_data(twin.world.transactions, twin.world)
+            if bt.get("gnn") is not None and data is not None:
+                node_scores = bt["gnn"].predict_proba(data)[:, 1]
+                gnn_tx_scores = np.array([
+                    node_scores[node_to_idx[str(tx['from'])]] if str(tx['from']) in node_to_idx else 0.5
+                    for tx in txs
+                ])
+            else:
+                gnn_tx_scores = np.full(len(X_a), 0.5)
+            X_meta = np.column_stack([xgb_probs, gnn_tx_scores])
+            meta_probs = bt["meta"].predict_proba(X_meta)
+            import logging
+            logging.getLogger(__name__).warning("XGB max: %s, GNN max: %s, Meta max: %s", xgb_probs.max(), gnn_tx_scores.max(), meta_probs.max())
+            return float(meta_probs.max())
+
         log = DEMO_STATE["event_log"]
         log.append({"event": "demo_start", "detail": "Starting 3-beat demo"})
 
@@ -156,16 +186,12 @@ def run_demo():
         # Generate and score attacks
         beat1_results = {}
         for aid in trainable:
-            spec = compiler.compile(compiler.benchmark_spec(aid))
+            spec = compiler.compile(BENCHMARK_ATTACKS[aid])
             traj_id = compiler.execute(spec, twin.world)
             attack_txs = [tx for tx in twin.world.transactions if tx.get("trajectory_id") == traj_id]
             if attack_txs:
-                X_a, y_a, _ = compute_features(attack_txs, twin.world)
-                if len(X_a) > 0:
-                    score = float(bt["xgb"].predict_proba(X_a).max())
-                    beat1_results[aid] = {"caught": score > 0.5, "score": round(score, 4), "txs": len(attack_txs)}
-                else:
-                    beat1_results[aid] = {"caught": False, "score": 0.0, "txs": 0}
+                score = _score_txs(attack_txs)
+                beat1_results[aid] = {"caught": score > 0.5, "score": round(score, 4), "txs": len(attack_txs)}
             else:
                 beat1_results[aid] = {"caught": False, "score": 0.0, "txs": 0}
 
@@ -188,20 +214,33 @@ def run_demo():
 
         X_new, y_new, _ = compute_features(twin.world.transactions, twin.world)
         bt["xgb"].fit(X_new, y_new, fnames)
+        
+        data_new, node_to_idx_new = build_graph_data(twin.world.transactions, twin.world)
+        if bt.get("gnn") is not None and data_new is not None:
+            bt["gnn"].fit(data_new)
+            
+        xgb_probs_new = bt["xgb"].predict_proba(X_new)
+        if bt.get("gnn") is not None and data_new is not None:
+            node_scores = bt["gnn"].predict_proba(data_new)[:, 1]
+            gnn_tx_scores = np.array([
+                node_scores[node_to_idx_new[str(tx['from'])]] if str(tx['from']) in node_to_idx_new else 0.5
+                for tx in twin.world.transactions
+            ])
+        else:
+            gnn_tx_scores = np.full(len(X_new), 0.5)
+            
+        X_meta_new = np.column_stack([xgb_probs_new, gnn_tx_scores])
+        bt["meta"].fit(X_meta_new, y_new)
 
         # Re-evaluate
         beat2_results = {}
         for aid in trainable:
-            spec = compiler.compile(compiler.benchmark_spec(aid))
+            spec = compiler.compile(BENCHMARK_ATTACKS[aid])
             traj_id = compiler.execute(spec, twin.world)
             attack_txs = [tx for tx in twin.world.transactions if tx.get("trajectory_id") == traj_id]
             if attack_txs:
-                X_a, y_a, _ = compute_features(attack_txs, twin.world)
-                if len(X_a) > 0:
-                    score = float(bt["xgb"].predict_proba(X_a).max())
-                    beat2_results[aid] = {"caught": score > 0.5, "score": round(score, 4)}
-                else:
-                    beat2_results[aid] = {"caught": False, "score": 0.0}
+                score = _score_txs(attack_txs)
+                beat2_results[aid] = {"caught": score > 0.5, "score": round(score, 4)}
             else:
                 beat2_results[aid] = {"caught": False, "score": 0.0}
 
@@ -211,16 +250,12 @@ def run_demo():
         # Beat 3: Held-out attacks
         beat3_results = {}
         for aid in held_out:
-            spec = compiler.compile(compiler.benchmark_spec(aid))
+            spec = compiler.compile(BENCHMARK_ATTACKS[aid])
             traj_id = compiler.execute(spec, twin.world)
             attack_txs = [tx for tx in twin.world.transactions if tx.get("trajectory_id") == traj_id]
             if attack_txs:
-                X_a, y_a, _ = compute_features(attack_txs, twin.world)
-                if len(X_a) > 0:
-                    score = float(bt["xgb"].predict_proba(X_a).max())
-                    beat3_results[aid] = {"caught": score > 0.5, "score": round(score, 4), "held_out": True}
-                else:
-                    beat3_results[aid] = {"caught": False, "score": 0.0, "held_out": True}
+                score = _score_txs(attack_txs)
+                beat3_results[aid] = {"caught": score > 0.5, "score": round(score, 4), "held_out": True}
             else:
                 beat3_results[aid] = {"caught": False, "score": 0.0, "held_out": True}
 

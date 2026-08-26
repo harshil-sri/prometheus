@@ -127,7 +127,7 @@ class FeedbackLoop:
     def _get_data(self):
         """Get graph data from current twin transactions."""
         from blue.features import build_graph_data
-        return build_graph_data(self.twin.world.transactions, self.twin.world)
+        return build_graph_data(self.twin.world.transactions, self.twin.world)[0]
 
     def _evaluate_attacks(self, attack_ids: List[str]) -> float:
         """Run attacks and measure recall (fraction caught)."""

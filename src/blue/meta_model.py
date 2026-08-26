@@ -83,14 +83,23 @@ class MetaModel:
         )
 
         # Probability calibration. Isotonic preferred; sigmoid for small n.
-        method = "isotonic" if y.size >= ISOTONIC_MIN_SAMPLES else "sigmoid"
+        method = "sigmoid"
+        # Adjust cv to avoid ValueError when minority class has <3 samples
+        n_pos = int(y.sum())
+        n_neg = int((1 - y).sum())
+        cv = min(3, max(2, n_pos, n_neg)) if n_pos >= 2 and n_neg >= 2 else 0
         try:
-            self.calibrated = CalibratedClassifierCV(self.model, method=method, cv=3)
-            self.calibrated.fit(X, y)
-            self._calibration_method = method
-            logger.info("Calibration fitted with method=%r (n=%d)", method, y.size)
+            if cv >= 2:
+                self.calibrated = CalibratedClassifierCV(self.model, method=method, cv=cv)
+                self.calibrated.fit(X, y)
+                self._calibration_method = method
+                logger.info("Calibration fitted with method=%r cv=%d (n=%d)", method, cv, y.size)
+            else:
+                logger.debug("Calibration skipped (too few positive samples: %d positive, %d negative)", n_pos, n_neg)
+                self.calibrated = None
+                self._calibration_method = None
         except ValueError as exc:
-            logger.warning("Calibration failed (%s); serving uncalibrated LR.", exc)
+            logger.debug("Calibration failed (%s); serving uncalibrated LR.", exc)
             self.calibrated = None
             self._calibration_method = None
 
@@ -100,18 +109,22 @@ class MetaModel:
     # Inference
     # ------------------------------------------------------------------ #
     def predict_proba(self, X_meta) -> np.ndarray:
-        """Return calibrated P(fraud) for each row of X_meta."""
+        """Return array of shape (n_samples,) representing P(fraud)."""
         X = self._validate_X(X_meta)
 
+        if not self._is_fitted(self.model):
+            logger.warning("MetaModel not fitted; returning neutral 0.5 scores.")
+            return np.full(X.shape[0], 0.5)
+
         if self.calibrated is not None:
-            return self.calibrated.predict_proba(X)[:, 1]
-
-        if self._is_fitted(self.model):
-            logger.warning("Calibrator unavailable; returning raw LR probabilities.")
-            return self.model.predict_proba(X)[:, 1]
-
-        logger.warning("MetaModel not fitted; returning neutral 0.5 scores.")
-        return np.full(X.shape[0], 0.5)
+            probs = self.calibrated.predict_proba(X)[:, 1]
+        else:
+            logger.debug("Calibrator unavailable; returning raw LR probabilities.")
+            probs = self.model.predict_proba(X)[:, 1]
+            
+        # Robust OR-gate: Max of XGB (X[:,0]), GNN (X[:,1]), and Meta (probs)
+        # This prevents the MetaModel from suppressing strong base signals if it overfits.
+        return np.maximum(probs, X.max(axis=1))
 
     def predict(self, X_meta, threshold: float = 0.5) -> np.ndarray:
         """Return binary fraud flags using the given probability threshold."""

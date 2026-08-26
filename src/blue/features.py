@@ -381,7 +381,7 @@ def build_graph_data(transactions, world_state=None):
     y_rows = [1.0 if node_fraud.get(nid, False) else 0.0 for nid in internal_nodes]
     y = torch.tensor(y_rows, dtype=torch.float)
 
-    return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
+    return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y), node_to_idx
 
 
 def get_node_features(account_id, world_state):
