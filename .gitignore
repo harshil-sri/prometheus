@@ -1,0 +1,29 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env/
+.venv/
+.venvs/
+*.env
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.idea/
+.vscode/
+
+# Local artifacts
+demo2.json
+run_result*.json
+handoff.md
+test_*.py
+scratch/
+
+# Antigravity artifacts
+.gemini/
