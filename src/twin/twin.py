@@ -11,7 +11,7 @@ import random
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .core import WorldState
-from .normal_behavior import NormalBehaviorGenerator, build_normal_profile
+from .normal_behavior import MERCHANT_CATEGORIES, NormalBehaviorGenerator, build_normal_profile
 from .typologies import run_typology
 
 
@@ -63,12 +63,13 @@ class FinancialDigitalTwin:
         self.num_ip_blocks = num_ip_blocks
         self.num_steps = num_steps
 
-        # Recurring-salary realism (P7 behavioral fidelity): a fixed subset
-        # of employed accounts receives EXT_SALARY deposits on a ~30-step
-        # cadence; state lives here so runs stay deterministic.
+        # Recurring-salary realism (P7 behavioral fidelity): EVERY account
+        # receives a salary-sized income on a ~30-step cadence, sized to its
+        # own spending so the economy holds a steady state. State lives here
+        # so runs stay deterministic.
         self.salary_recipients: List[str] = []
         self.salary_interval: int = 30
-        self.salary_amount_range = (20000.0, 80000.0)
+        self.salary_schedule: Dict[str, float] = {}
 
         # Bootstrap
         self._bootstrap()
@@ -114,16 +115,28 @@ class FinancialDigitalTwin:
         for _ in range(self.num_devices):
             world.add_device()
 
-        # Initial salary deposits from EXT_SALARY to bootstrap balances
-        # Give ~10% of accounts an initial salary deposit
+        # Recurring income (steady-state economy fix): EVERY account receives
+        # a salary-sized deposit on the fixed cadence, sized from its own
+        # expected cycle spend with a modest surplus (a bounded ceiling keeps
+        # the credits from dominating the normal-amount mix — the P1 law
+        # "fraud amounts statistically exceed normal amounts" must hold).
+        # Merchants are EXTERNAL entities — money spent on them never
+        # returns, so a 10%-only salary pool used to drain the economy over
+        # long horizons, pushing balances negative and silently starving
+        # salary-funded attack typologies (A5 scatter_gather).
+        MIN_SALARY_INR = 100.0
+        MAX_SALARY_INR = 20000.0
         all_accounts = list(world.accounts.keys())
-        employed = rng.sample(all_accounts, max(1, len(all_accounts) // 10))
-        for acc_id in employed:
-            salary_amt = round(rng.uniform(*self.salary_amount_range), 2)
+        for acc_id in all_accounts:
+            profile = getattr(world.accounts[acc_id], "profile", None) or {}
+            expected = self._expected_cycle_spend(profile)
+            scaled = expected * self.rng.uniform(1.05, 1.4)
+            salary = round(min(MAX_SALARY_INR, max(MIN_SALARY_INR, scaled)), 2)
+            self.salary_schedule[acc_id] = salary
             world.log_transaction(
                 from_id="EXT_SALARY",
                 to_id=acc_id,
-                amount=salary_amt,
+                amount=salary,
                 step=0,
                 currency="INR",
                 category="salary",
@@ -131,8 +144,29 @@ class FinancialDigitalTwin:
                 ip=None,
                 is_fraud=False,
             )
-        # the SAME employees receive recurring deposits at a fixed cadence
-        self.salary_recipients = list(employed)
+        self.salary_recipients = list(self.salary_schedule.keys())
+
+    def _expected_cycle_spend(self, profile: Dict[str, Any]) -> float:
+        """Expected normal-behaviour spend over one salary cycle.
+
+        Approximates the normal generator's per-tx amount (preferred
+        merchant categories weighted by profile weights, 20% P2P) times the
+        expected number of txs per interval. Used to size each account's
+        recurring income near its burn rate so balances stay healthy.
+        """
+        scale = float(profile.get("amount_scale", 1.0))
+        mean_interval = max(1.0, float(profile.get("mean_interval", 10)))
+        cats = profile.get("preferred_categories") or ["retail"]
+        weights = profile.get("preferred_weights") or \
+            [1.0 / len(cats)] * len(cats)
+        merchant_mean = sum(
+            w * MERCHANT_CATEGORIES.get(c, {"mean": 1000.0})["mean"]
+            for w, c in zip(weights, cats)
+        )
+        p2p_mean = MERCHANT_CATEGORIES["p2p"]["mean"]
+        per_tx = 0.8 * merchant_mean + 0.2 * p2p_mean
+        n_tx = self.salary_interval / mean_interval
+        return per_tx * n_tx * scale
 
     # ------------------------------------------------------------------
     # Step execution
@@ -147,12 +181,11 @@ class FinancialDigitalTwin:
         self.world.current_step += 1
         step_txs: List[Dict] = []
 
-        # Recurring salary deposits (same employees, fixed cadence)
-        if self.salary_recipients and \
+        # Recurring salary deposits (all accounts, fixed cadence, per-account
+        # amount sized to each account's own spending)
+        if self.salary_schedule and \
                 self.world.current_step % self.salary_interval == 0:
-            for acc_id in self.salary_recipients:
-                amt = round(rng_uniform_salary(self.rng,
-                                               *self.salary_amount_range), 2)
+            for acc_id, amt in self.salary_schedule.items():
                 tx = self.world.log_transaction(
                     from_id="EXT_SALARY", to_id=acc_id, amount=amt,
                     step=self.world.current_step, currency="INR",

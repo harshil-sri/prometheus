@@ -3,7 +3,7 @@
 > **READ THIS FIRST in any new session.** This file is the context anchor for Project
 > Prometheus. If the context window dies, a fresh agent reads THIS file plus the code
 > and continues without losing decisions, laws, or status. It is updated at every
-> phase gate. Last updated: Phase 11 freeze (2026-08-28).
+> phase gate. Last updated: Phase 11 freeze + eval-robustness gate (2026-08-28).
 
 ---
 
@@ -205,7 +205,11 @@ If a gate fails → fix before moving on.
   (d) splits are paise-exact integer allocations over jittered weights
   (`_split_exact`) — sum invariant exact, per-cell shares naturally uneven;
   (e) solvency: `_send` clamps to sender balance minus 2% headroom and SKIPS
-  unfundable hops instead of overdrafting; (f) timing: consecutive attack
+  unfundable hops instead of overdrafting (2026-08-28: the SAME floor now
+  applies to NORMAL spends in `NormalBehaviorGenerator.step` — the whole
+  world is bound by the never-overdraft law, capping spend at balance−2%
+  and skipping instead of logging zero-value rows; fraud `_send` path
+  untouched); (f) timing: consecutive attack
   actions separated by U{1..timing_max_lag} steps, max_lag default ~ U{2..8}
   (fraud IAT now overlaps normal cadence; old hard-packing gone);
   (g) scatter_gather scatters the FULL principal (legacy 50% haircut removed);
@@ -308,8 +312,13 @@ If a gate fails → fix before moving on.
   (w_ratio_median ≤0.75, ks_median ≤0.35, plus tail_ok ≤3×) — measured:
   PASS at 200 epochs (median w-ratio 0.2497 / KS 0.161), worst columns
   listed in artifact; (c) behavioral layer measures the twin's OWN realism
-  incl. NEW recurring-salary mechanic in FinancialDigitalTwin.step()
-  (same employees every `salary_interval`=30 steps → on_cadence_ratio 1.0)
+  incl. recurring-salary mechanic in FinancialDigitalTwin.step()
+  (2026-08-28 UPDATE: salary recipients widened from the historical 10%
+  "same employees" to EVERY account — each account receives a deposit on
+  `salary_interval`=30 steps sized from its own expected cycle spend
+  (≈burn rate × U[1.05,1.4], cap ₹20k) so the economy holds a steady state
+  and account balances stay positive long-horizon. `on_cadence_ratio`
+  stays 1.0 and the cadence test in tests/test_fidelity.py is the gate)
   + networkx degree/clustering/triangles + IAT overlap + liveness where
   account_active_ratio counts INTERNAL accounts only (merchants excluded —
   bug found & fixed during gating);
@@ -408,8 +417,32 @@ If a gate fails → fix before moving on.
   PR-AUC 0.7615 vs XGB-only 0.7340 on two-axis holdout eval; per-type
   recall>p95: A4/A5/A6 ≈1, A1 0.33, A3 0.00 (micro-tx; floor fixed P2),
   A2 0.00 (held-out synthetic identity). These weaknesses ARE the baseline's
-  point. Numbers live in artifacts/baseline_eval.json (fingerprint
+  point. FIRST numbers live in artifacts/baseline_eval.json (fingerprint
   292cc7f6…a162). Don't inflate.
+- **2026-08-28 — Eval robustness gate LOCKED (supersedes the numbers above):**
+  root-cause of unstable per-config results was a DECAYING TWIN ECONOMY +
+  silent type absence, not detector variance. (a) compiler entity selection
+  is now FUNDING-AWARE: main account chosen from accounts that can carry the
+  principal (tiers 100%/50%/20% of spec.amount), members from accounts that
+  can fund a share — still stochastic within the funded pool and still
+  per-seed deterministic (this is what the "declared preconditions handle
+  funding" comment always implied; the preconditions were previously no-ops);
+  (b) `scripts/baseline_eval.py` FAILS LOUDLY (exit 2) when any attack type
+  yields < `--min-eval-fraud-per-type` fraud rows in the eval slice (the old
+  A5-at-140-steps produced 0 txs and was silently dropped), runs each type
+  `--eval-repeats` (default 5) fresh executions for statistically useful
+  per-type n, reports an `eval_population` block (rows/fraud/prevalence/
+  step-window) and promotes fixed-5%-prevalence PR-AUC as the cross-config
+  headline; per-type recall is measured over FRAUD legs only; (c) NEW
+  `scripts/sweep_eval.py` → artifacts/sweep_eval.json (seeds × scales, mean/
+  95CI per scale, population caveats + generation failures flagged). Fresh
+  headline 5% PR-AUC across 4 seeds × 3 configs (all generation-gated OK):
+  600×75×70 → 0.896 (CI .888–.905), 1200×150×70 → 0.877 (.842–.912),
+  1200×150×140 → 0.898 (.890–.905); per-type recall>p95 now stable:
+  A1 1.00, A2 0.00 (honest held-out), A3 .97–1.00, A4 1.00, A5 1.00,
+  A6 1.00. A5's 1.00 is legitimate zero-shot generalization (40 real rows
+  per run; large-amount + burst features) — BEFORE the gate A5 ranged
+  0.00/none. Two-axis fingerprint UNCHANGED (292cc7f6…a162). Don't inflate.
 - **2026-08-28 — Knowledge Graph & Flywheel Calibration:** (a) `src/api/graph.py`
   provides `build_knowledge_graph` (typed entity nodes: accounts, customers,
   merchants, devices, IPs, wallets; multi-relational edges: TRANSACTION,
@@ -438,6 +471,10 @@ python scripts/bench_twin.py
 
 # Honest baseline evaluation (writes artifacts/baseline_eval.json)
 python scripts/baseline_eval.py
+
+# Seed × scale robustness sweep (writes artifacts/sweep_eval.json)
+python scripts/sweep_eval.py --seeds 42 43 44 45 \
+    --scale 600-75-70 1200-150-70 1200-150-140 --eval-repeats 5
 
 # Shadow-gradient eval + adversarial training A/B
 #   (writes artifacts/shadow_eval.json)

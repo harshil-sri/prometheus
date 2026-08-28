@@ -103,9 +103,11 @@ def test_a2_synthetic_burst_is_structurally_real(small_world):
     created = set()
     traj = next(t for t in small_world.world.trajectories
                 if t["trajectory_id"] == traj_id)
-    for a in traj["actions"]:
-        if a.get("account_ids"):
-            created.update(a["account_ids"])
+    # The trajectory log records every created account as its own
+    # create_account action with a SINGULAR account_id (the batch key never
+    # existed in the log); collect those — they ARE the created burst.
+    created = {a["account_id"] for a in traj["actions"]
+               if a.get("action") == "create_account"}
     # counts HONOURED: resources.accounts (=12) burst, not a hardcoded 5→1
     assert len(created) >= 6
     assert len(small_world.world.accounts) == before + len(created)
