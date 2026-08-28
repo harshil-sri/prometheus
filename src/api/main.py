@@ -83,6 +83,32 @@ def get_status():
     }
 
 
+@app.get("/api/ood")
+def get_ood_matrix():
+    """Mechanism × attack-type OOD detection matrix for the heatmap panel.
+
+    Serves the REAL persisted artifact written by scripts/mechanism_eval.py —
+    never fabricated. Honest fallback when the artifact is missing."""
+    path = Path(STRUCTURED_WEIGHTS_PATH).parent / "ood_matrix.json"
+    if not path.exists():
+        return {"present": False,
+                "note": "OOD matrix not generated yet — run "
+                        "scripts/mechanism_eval.py."}
+    try:
+        d = json.loads(path.read_text())
+    except Exception as exc:                     # noqa: BLE001
+        return {"present": False,
+                "note": f"OOD matrix unreadable: {exc}"}
+    return {
+        "present": True,
+        "rates": d.get("rates", {}),
+        "types": (d.get("config") or {}).get("types", []),
+        "mechanisms": (d.get("config") or {}).get("mechanisms", []),
+        "fingerprint": d.get("fingerprint", ""),
+        "holdout_fingerprint": d.get("holdout_fingerprint", ""),
+    }
+
+
 @app.get("/api/attack-types")
 def get_attack_types():
     """Return all benchmark attack types with metadata (LIST not dict —

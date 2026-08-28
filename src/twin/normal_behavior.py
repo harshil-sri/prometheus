@@ -42,6 +42,15 @@ def _natural_amount(rng: random.Random, mean: float, std: float,
     return round(max(lo, min(hi, a)), 2)
 
 
+#: fraction of balance a normal (non-fraud) spender keeps as headroom
+#: when the spend floor clamps — mirrors the fraud-side solvency law so the
+#: whole world (normal + fraud) respects the same "never overdraft" rule.
+NORMAL_TX_HEADROOM = 0.02
+
+#: transfers below this amount are skipped (won't log zero-value rows)
+NORMAL_TX_MIN = 0.01
+
+
 # ---------------------------------------------------------------------------
 # Profile builder
 # ---------------------------------------------------------------------------
@@ -152,6 +161,15 @@ class NormalBehaviorGenerator:
         cat_info = MERCHANT_CATEGORIES.get(category, {"mean": 1000.0, "std": 500.0})
         amount = _natural_amount(self.rng, cat_info["mean"] * scale, cat_info["std"] * scale,
                                  lo=cat_info.get("min", 1.0), hi=cat_info.get("max", 100000.0))
+
+        # Solvency floor (steady-state economy fix): cap any normal spend at
+        # what the sender actually holds (minus headroom) so the twin never
+        # drives balances negative; skip rather than log a zero-value row.
+        # All RNG draws above already happened, so this stays deterministic.
+        available = max(account.balance * (1.0 - NORMAL_TX_HEADROOM), 0.0)
+        if available < NORMAL_TX_MIN:
+            return None
+        amount = min(amount, available)
 
         device = self._pick_device(account_id, profile)
         ip = self._pick_ip()

@@ -1020,6 +1020,17 @@
           </div>
         </div>
       </div>
+
+      <!-- Mechanism × Type OOD Detection Heatmap -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header">
+          <div class="card-title">Mechanism × Type OOD Detection Heatmap</div>
+          <span style="font-size:11px; font-family:var(--font-mono); color:var(--text-submuted);" id="oodStatus">Not loaded</span>
+        </div>
+        <div id="oodHeatmap">
+          <p style="color:var(--text-muted); font-size:13px;">Run "scripts/mechanism_eval.py" to generate the mechanism-OOD matrix, then load it here.</p>
+        </div>
+      </div>
     </div>
 
     <!-- Live Stream Console -->
@@ -1196,6 +1207,7 @@ async function initialize() {
     await loadTrajectories();
     await loadGraph();
     await loadSamplePool();
+    renderOODHeatmap();
 
     // Default to a benign approved sample transaction on boot
     sampleTransaction('APPROVE');
@@ -1482,6 +1494,44 @@ function renderComboResults(data) {
     `;
     container.appendChild(stageEl);
   });
+}
+
+// ---------------------------------------------------------------------------
+// Mechanism × Type OOD Heatmap
+// ---------------------------------------------------------------------------
+async function renderOODHeatmap() {
+  const box = $('oodHeatmap');
+  const status = $('oodStatus');
+  try {
+    const data = await api('/api/ood');
+    if (!data.present) {
+      status.textContent = 'No data';
+      box.innerHTML = `<p style="color:var(--text-muted); font-size:13px;">${data.note || 'OOD matrix not generated yet.'}</p>`;
+      return;
+    }
+    status.textContent = `fp ${(data.fingerprint || '').slice(0, 8)}…`;
+    const mechanisms = data.mechanisms || [];
+    const types = data.types || [];
+    const rates = data.rates || {};
+    const head = `<tr><th style="padding:6px 10px;"></th>${
+      types.map(t => `<th style="padding:4px 8px; font-size:11px; color:var(--text-muted);">${t}</th>`).join('')
+    }</tr>`;
+    const rows = mechanisms.map(m => {
+      const cells = types.map(t => {
+        const r = ((rates[m] || {})[t]);
+        const pct = Number.isFinite(Number(r)) ? Math.round(Number(r) * 1000) / 10 : null;
+        const cell = pct === null
+          ? '<td style="padding:8px 6px; text-align:center; color:var(--text-submuted);">&ndash;</td>'
+          : `<td title="${m} × ${t}: ${pct}% detected" style="background:${pct >= 50 ? '#7a1f2b' : pct >= 20 ? '#8a5a16' : '#1f3d2b'}; color:#e6e6e6; text-align:center; padding:8px 6px; font-family:var(--font-mono); font-size:12px;">${pct}%</td>`;
+        return cell;
+      }).join('');
+      return `<tr><td style="padding:8px 10px; font-family:var(--font-mono); font-size:12px; color:var(--text-muted);">${m}</td>${cells}</tr>`;
+    }).join('');
+    box.innerHTML = `<table style="width:100%; border-collapse:collapse; border:1px solid var(--border-medium);">${head}${rows}</table>`;
+  } catch (e) {
+    status.textContent = 'Load error';
+    box.innerHTML = `<p style="color:var(--status-rose); font-size:13px;">OOD matrix unavailable: ${e.message}</p>`;
+  }
 }
 
 // ---------------------------------------------------------------------------

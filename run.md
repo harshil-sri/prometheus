@@ -54,7 +54,7 @@ pip install -r requirements.txt
 Run the FastAPI application:
 
 ```bash
-python src/api/main.py
+    python src/api/main.py
 ```
 *Alternatively:*
 ```bash

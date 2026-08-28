@@ -209,6 +209,7 @@ class AttackCompiler:
                     is_fraud=False,
                     attack_id=attack_id,
                     trajectory_id=trajectory_id,
+                    mechanism="rule_compiler",
                 )
                 action_log.append({
                     "step": actual_step,
@@ -261,6 +262,7 @@ class AttackCompiler:
                     is_fraud=True,
                     attack_id=attack_id,
                     trajectory_id=trajectory_id,
+                    mechanism="rule_compiler",
                 )
                 action_log.append({
                     "step": actual_step,
@@ -284,6 +286,7 @@ class AttackCompiler:
                     is_fraud=True,
                     attack_id=attack_id,
                     trajectory_id=trajectory_id,
+                    mechanism="rule_compiler",
                 )
                 action_log.append({
                     "step": actual_step,
@@ -301,6 +304,7 @@ class AttackCompiler:
                 kwargs["rng"] = self.rng
                 kwargs["attack_id"] = attack_id
                 kwargs["trajectory_id"] = trajectory_id
+                kwargs["mechanism"] = "rule_compiler"
                 if "step_offset" in action:
                     kwargs.setdefault("step_offset", action["step_offset"])
                 tx_ids = run_twin_typology(typology_name, **kwargs)
@@ -335,11 +339,14 @@ class AttackCompiler:
                 balance = action.get("balance", 0.0)
                 count = action.get("count", 1)
                 account_ids = action.get("account_ids", [])
+                customer_ids = action.get("customer_ids", [])
                 for i in range(count):
                     opened_at = actual_step
                     aid = account_ids[i] if i < len(account_ids) else None
+                    owner = (customer_ids[i] if i < len(customer_ids)
+                             else customer_id)
                     acct = w.add_account(
-                        customer_id=customer_id,
+                        customer_id=owner,
                         account_id=aid,
                         opened_at=opened_at,
                         balance=balance,
@@ -348,7 +355,7 @@ class AttackCompiler:
                         "step": actual_step,
                         "action": "create_account",
                         "account_id": acct.account_id,
-                        "customer_id": customer_id,
+                        "customer_id": owner,
                     })
 
             elif act_type == "create_customer":
@@ -553,13 +560,41 @@ class AttackCompiler:
         all_accounts = list(world.accounts.keys())
         all_merchants = list(world.merchants.keys()) if world.merchants else []
 
-        # Select a main account (compromised target)
-        main_account = rng.choice(all_accounts)
+        # Funding-aware entity selection: attack plans execute under a
+        # solvency clamp (a sender can never overdraw), so a broke main
+        # account silently produces ZERO transactions (the A5 scatter_gather
+        # failure). Prefer entities that can actually fund the plan; fall
+        # back to the full pool only when the economy is too thin — the
+        # typology clamp then degrades gracefully instead of breaking eval.
+        def _funded(min_balance: float) -> List[str]:
+            return [a for a in all_accounts
+                    if world.accounts[a].balance >= min_balance]
 
-        # Select member/mule accounts (exclude main)
-        candidates = [a for a in all_accounts if a != main_account]
-        n_members = min(n_accounts - 1, len(candidates))
-        members = rng.sample(candidates, n_members) if n_members > 0 else []
+        amount = float(getattr(spec, "amount", 0.0) or 0.0)
+
+        # Main account: prefer one that can carry (most of) the principal.
+        # Large-transfer / scatter-gather typologies clamp each hop to the
+        # account balance minus headroom, so a fully-funded main is required
+        # for the whole plan to land.
+        main_pool: Optional[List[str]] = None
+        for tier in (amount, amount * 0.5, amount * 0.2):
+            p = _funded(tier)
+            if p:
+                main_pool = p
+                break
+        main_account = rng.choice(main_pool if main_pool is not None
+                                  else all_accounts)
+
+        # Member/mule accounts: prefer members that can fund a principal
+        # share (fan_in members each send a share; underfunded ones just get
+        # skipped by the clamp, shrinking the trajectory).
+        share = amount / max(1, n_accounts - 1) if amount > 0.0 else 0.0
+        member_floor = max(share * 0.9, 1.0)
+        m_pool = [a for a in _funded(member_floor) if a != main_account]
+        if not m_pool:
+            m_pool = [a for a in all_accounts if a != main_account]
+        n_members = min(n_accounts - 1, len(m_pool))
+        members = rng.sample(m_pool, n_members) if n_members > 0 else []
 
         # Select merchants
         n_merchants = min(3, len(all_merchants))
@@ -756,6 +791,7 @@ class AttackCompiler:
         compromised_accounts: List[str] = []
         created_accounts: List[str] = []
         created_devices: List[str] = []
+        created_customer_ids: List[str] = []
 
         for idx, action_step in enumerate(action_sequence):
             step_offset = offsets[idx] if idx < len(offsets) else idx
@@ -803,7 +839,15 @@ class AttackCompiler:
             elif act_type == "create_customer":
                 count = action_step.get("count", 5)
                 wa["count"] = count
-                wa["customer_ids"] = [f"C_{rng.randint(100000, 999999)}_{i}" for i in range(count)]
+                wa["customer_ids"] = [
+                    f"CUST_{rng.randint(100000, 999999)}_{i}"
+                    for i in range(count)
+                ]
+                if attack_type == "A2":
+                    # Synthetic identities onboard with minimal KYC; the
+                    # accounts created next pair 1:1 to THESE customers.
+                    wa["kyc_tier"] = "low"
+                created_customer_ids = wa["customer_ids"]
 
             elif act_type == "create_account":
                 count = action_step.get("count", 5)
@@ -814,6 +858,9 @@ class AttackCompiler:
                 wa["account_ids"] = new_accts
                 if attack_type == "A2":
                     members = new_accts
+                    # The synthetic accounts are OWNED by the synthetic
+                    # customers just onboarded (paired 1:1 in execute()).
+                    wa["customer_ids"] = created_customer_ids[:count]
 
             elif act_type == "typology":
                 typology_name = action_step["typology"]
