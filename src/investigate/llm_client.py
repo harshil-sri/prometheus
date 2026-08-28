@@ -35,7 +35,10 @@ class LLMClient:
                  timeout_s: float = 20.0):
         base = os.environ.get("PROMETHEUS_LLM_BASE_URL", "").strip()
         self.model = os.environ.get("PROMETHEUS_LLM_MODEL", "").strip()
-        self.api_key = os.environ.get("PROMETHEUS_LLM_API_KEY", "").strip()
+        key = os.environ.get("PROMETHEUS_LLM_API_KEY", "").strip()
+        if key.startswith("gsk-"):
+            key = "gsk_" + key[4:]
+        self.api_key = key
         self.available = bool(base and self.model)
         if self.available:
             try:
