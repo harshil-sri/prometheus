@@ -79,13 +79,15 @@ src/
 ├── eval/           # Evaluation Harness (T8)
 │   └── harness.py  # Multi-prevalence PR-AUC, cost model
 ├── api/            # Dashboard Backend (T7)
-│   └── main.py     # FastAPI server
+│   ├── main.py     # FastAPI server
+│   └── graph.py    # Multi-relational Knowledge Graph engine
 └── dashboard/      # Dashboard Frontend (T7)
-    └── index.html  # Single-page HTML/JS
+    └── index.html  # Single-page War-Room UI + Graph Canvas
 ```
 
 ## Key Design Decisions
 
+- **Knowledge Graph Explorer**: Dynamic extraction of multi-relational graphs (accounts, customers, merchants, devices, IPs, transactions) with GNN risk overlay and sub-graph trajectory filtering without hardcoded constants
 - **Held-out attacks**: A2 (synthetic identity) and A5 (scatter_gather layering) are locked before training — enforced in code with `assert_no_held_out_leakage()`
 - **Max 2 retrain rounds**: Hard-capped in `feedback/loop.py` to prevent overfitting to generator quirks
 - **Structured score is deep-path only**: Fast path stays a pure ML probability. Never mixed.

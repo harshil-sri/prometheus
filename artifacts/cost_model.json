@@ -1,0 +1,107 @@
+{
+  "schema": "prometheus.cost_model.v1",
+  "model_description": "declared-assumption INR economics over a per-1000-txn frame; inputs (prevalence, budget, recall, precision) come from measured eval-harness points on this twin",
+  "points": {
+    "prev_0.005": {
+      "prevalence": 0.005,
+      "budget": 5.0,
+      "recall": 1.0,
+      "precision": 0.2712
+    },
+    "prev_0.02": {
+      "prevalence": 0.02,
+      "budget": 5.0,
+      "recall": 1.0,
+      "precision": 0.4
+    }
+  },
+  "worked_examples": {
+    "prev_0.005": {
+      "per_1000_transactions": {
+        "fraud_txn_expected": 5.0,
+        "alerts_generated": 50.0,
+        "est_prevented_frauds": 5.0,
+        "est_false_positives": 48.64
+      },
+      "inr_breakdown": {
+        "gross_saved_by_prevention": 60000.0,
+        "review_cost": 2400.0,
+        "false_decline_cost": 12161.0,
+        "net_benefit": 45439.0,
+        "cost_per_prevented_fraud": 2912.2
+      },
+      "assumptions_declared": {
+        "avg_fraud_loss_inr": 12000.0,
+        "analyst_rate_inr_per_hour": 480.0,
+        "analyst_review_minutes": 6.0,
+        "false_decline_cost_inr": 250.0
+      },
+      "inputs_measured": {
+        "prevalence": 0.005,
+        "budget_pct": 5.0,
+        "recall_at_budget": 1.0,
+        "precision_at_budget": 0.2712
+      }
+    },
+    "prev_0.02": {
+      "per_1000_transactions": {
+        "fraud_txn_expected": 20.0,
+        "alerts_generated": 50.0,
+        "est_prevented_frauds": 20.0,
+        "est_false_positives": 42.0
+      },
+      "inr_breakdown": {
+        "gross_saved_by_prevention": 240000.0,
+        "review_cost": 2400.0,
+        "false_decline_cost": 10500.0,
+        "net_benefit": 227100.0,
+        "cost_per_prevented_fraud": 645.0
+      },
+      "assumptions_declared": {
+        "avg_fraud_loss_inr": 12000.0,
+        "analyst_rate_inr_per_hour": 480.0,
+        "analyst_review_minutes": 6.0,
+        "false_decline_cost_inr": 250.0
+      },
+      "inputs_measured": {
+        "prevalence": 0.02,
+        "budget_pct": 5.0,
+        "recall_at_budget": 1.0,
+        "precision_at_budget": 0.4
+      }
+    }
+  },
+  "sensitivity": {
+    "schema": "prometheus.cost_model.v1",
+    "grid": {
+      "prev_0.005": {
+        "inputs": {
+          "prevalence": 0.005,
+          "budget": 5.0,
+          "recall": 1.0,
+          "precision": 0.2712
+        },
+        "net_by_variant": {
+          "base_assumptions": 45439.0,
+          "high_loss_low_cost": 110303.4,
+          "low_loss_high_cost": 14239.0
+        }
+      },
+      "prev_0.02": {
+        "inputs": {
+          "prevalence": 0.02,
+          "budget": 5.0,
+          "recall": 1.0,
+          "precision": 0.4
+        },
+        "net_by_variant": {
+          "base_assumptions": 227100.0,
+          "high_loss_low_cost": 471300.0,
+          "low_loss_high_cost": 105900.0
+        }
+      }
+    }
+  },
+  "fraud_loss_proxy_measured_inr": 50000.03,
+  "note": "economics are a model w/ DECLARED knobs extrapolated to a per-1000-txn frame; losses proxy twin amounts"
+}

@@ -1,0 +1,100 @@
+{
+  "schema": "prometheus.latency.v1",
+  "environment": {
+    "python": "3.13.11",
+    "os": "Windows-11-10.0.26300-SP0",
+    "machine": "AMD64",
+    "cpu_count": 8,
+    "cpu_only": true,
+    "clock": "2026-08-27T19:34:19"
+  },
+  "paths": {
+    "fast_single_tx": {
+      "iterations": 30,
+      "p50": 0.01171,
+      "p95": 0.0163,
+      "p99": 0.01694,
+      "mean": 0.01226,
+      "min": 0.00919,
+      "max": 0.01694,
+      "samples_s": [
+        0.00919,
+        0.00943,
+        0.0096,
+        0.00986,
+        0.0099,
+        0.01017,
+        0.01034,
+        0.01065,
+        0.01071,
+        0.01072,
+        0.01095,
+        0.01105,
+        0.01131,
+        0.01132,
+        0.01171,
+        0.01189,
+        0.0119,
+        0.01228,
+        0.01234,
+        0.01252,
+        0.01266,
+        0.01279,
+        0.01418,
+        0.01446,
+        0.01466,
+        0.01585,
+        0.01598,
+        0.0162,
+        0.0163,
+        0.01694
+      ],
+      "definition": "victim ensemble score of one tx row incl. GNN lookup"
+    },
+    "fast_batch_32": {
+      "iterations": 15,
+      "p50": 0.01568,
+      "p95": 0.04235,
+      "p99": 0.05199,
+      "mean": 0.02002,
+      "min": 0.01129,
+      "max": 0.05199,
+      "samples_s": [
+        0.01129,
+        0.01225,
+        0.01325,
+        0.01341,
+        0.01398,
+        0.01466,
+        0.01527,
+        0.01568,
+        0.01786,
+        0.01819,
+        0.01928,
+        0.01975,
+        0.02114,
+        0.04235,
+        0.05199
+      ],
+      "definition": "batch-32 ensemble scoring"
+    },
+    "deep_case_5rows": {
+      "iterations": 5,
+      "p50": 0.02733,
+      "p95": 0.03901,
+      "p99": 0.03901,
+      "mean": 0.03009,
+      "min": 0.02684,
+      "max": 0.03901,
+      "samples_s": [
+        0.02684,
+        0.02729,
+        0.02733,
+        0.03,
+        0.03901
+      ],
+      "definition": "full investigator case: signals+OSINT+sanctions+spectral+narrative fallback+fitted structured score; LLM network latency excluded (offline template mode)"
+    }
+  },
+  "measured_seconds": true
+}

@@ -1,0 +1,73 @@
+{
+  "manifest": [
+    {
+      "strategy_id": "GA_specspace",
+      "mechanism": "genetic",
+      "fingerprint": "2171287f045db215",
+      "registered_at": 1787827898.3744042,
+      "meta": {
+        "population": 8,
+        "max_generations": 5
+      },
+      "metrics": {
+        "best_peak": 0.0,
+        "initial_best": 1.0,
+        "queries": 40,
+        "improved": true
+      }
+    },
+    {
+      "strategy_id": "LLM_fallback_mix",
+      "mechanism": "llm_strategist",
+      "fingerprint": "5bf3fea14b76c70b",
+      "registered_at": 1787827898.377367,
+      "meta": {
+        "n_variants": 4
+      },
+      "metrics": {
+        "origin_counts": {
+          "llm": 0,
+          "fallback": 4
+        }
+      }
+    },
+    {
+      "strategy_id": "ShadowPGD_replay_pool",
+      "mechanism": "shadow_pgd",
+      "fingerprint": "09d8671f7b7d4963",
+      "registered_at": 1787827899.6912267,
+      "meta": {
+        "per_type_rows": [
+          2,
+          3,
+          6,
+          4
+        ]
+      },
+      "metrics": {
+        "distill_xgb_r2": 0.976,
+        "distill_mlp_r2": 0.4334
+      }
+    },
+    {
+      "strategy_id": "DQN_rl_stretch",
+      "mechanism": "rl_stretch",
+      "fingerprint": "6f97960171ad7add",
+      "registered_at": 1787827900.7436771,
+      "meta": {
+        "pre_registered": {
+          "min_episodes": 50,
+          "ship_condition": "best_mean_evasion >= heuristic_baseline - 0.05",
+          "fallback_outcome": "negative_result_reported",
+          "query_budget_shared": true
+        }
+      },
+      "metrics": {
+        "episodes_run": 50,
+        "rl_best_mean_evasion": 0.0,
+        "heuristic_baseline": 0.0,
+        "shipped": true
+      }
+    }
+  ]
+}

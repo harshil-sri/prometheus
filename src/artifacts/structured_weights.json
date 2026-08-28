@@ -1,0 +1,25 @@
+{
+  "coef": [
+    6.297295375475892,
+    0.3432872613455003,
+    6.20588927156452,
+    0.0,
+    -0.45082209018035635,
+    -0.1632082033073012
+  ],
+  "intercept": -5.961611238150705,
+  "columns": [
+    "xgb",
+    "gnn",
+    "meta",
+    "manifold",
+    "spectral_cycle",
+    "spectral_star"
+  ],
+  "fit_meta": {
+    "n": 6231,
+    "pos": 16,
+    "fit_auc": 1.0,
+    "source": "fitted_in_sample"
+  }
+}

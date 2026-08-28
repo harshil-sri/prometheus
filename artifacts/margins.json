@@ -1,0 +1,67 @@
+{
+  "schema": "prometheus.margins.v1",
+  "generated_from": "shadow-PGD candidates replayed vs true ensemble",
+  "n_candidates": 10,
+  "n_confirmed": 0,
+  "n_false_hope": 10,
+  "n_not_evasive": 0,
+  "evasion_rate": 0.0,
+  "mean_true_score_drop": 0.0375,
+  "margin_estimate_min": null,
+  "margin_estimate_mean": null,
+  "note": "margins are ESTIMATES derived through a distilled surrogate; approximate by construction and never treated as guarantees",
+  "distribution": {
+    "n_candidates": 10,
+    "threshold": 0.5,
+    "sign_split": {
+      "evasive": 0,
+      "caught": 10,
+      "frac_evasive": 0.0
+    },
+    "stats": {
+      "min": -0.5,
+      "p05": -0.5,
+      "median": -0.4992,
+      "mean": -0.4139,
+      "p95": -0.1807,
+      "max": -0.1192
+    },
+    "near_boundary": {
+      "within_0.05_of_threshold": 0.0,
+      "within_0.10_above_threshold": 0.0
+    },
+    "histogram": {
+      "counts": [
+        7,
+        2,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "bin_edges": [
+        -0.5,
+        -0.375,
+        -0.25,
+        -0.125,
+        0.0,
+        0.125,
+        0.25,
+        0.375,
+        0.5,
+        0.625,
+        0.75
+      ]
+    },
+    "score_drop_mean": 0.0375,
+    "vocabulary_law": {
+      "label": "empirical estimate",
+      "note": "empirical margins from PGD candidate replay against the true ensemble; NOT a verification guarantee"
+    }
+  },
+  "score_replay_note": "338 oracle queries; distill_xgb_r2=0.9974"
+}

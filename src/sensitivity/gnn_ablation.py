@@ -9,6 +9,30 @@ class GNNAblation:
         self.gnn = gnn_model
         self.node_id_map = node_id_map or {}
 
+    def _forward(self, data, edge_index):
+        """Forward pass supplying edge_attr whenever the architecture
+        requires them (Phase 2 TransformerConv(edge_dim=3) hard-asserts).
+        Falls back to plain two-arg call for older/attr-free models."""
+        import torch
+        edge_attr = getattr(data, "edge_attr", None)
+        needs_attr = getattr(self.gnn, "EDGE_ATTR_DIM", None) is not None \
+            or type(self.gnn).__name__ == "FraudGNN"
+        if needs_attr:
+            n_edges = edge_index.size(1)
+            if edge_attr is None or edge_attr.size(0) != n_edges:
+                dim = getattr(self.gnn, "EDGE_ATTR_DIM", 3)
+                # align: drop self-loops case by padding zeros to match count
+                if edge_attr is None:
+                    edge_attr = torch.zeros((n_edges, dim))
+                elif edge_attr.size(0) < n_edges:
+                    pad = torch.zeros(
+                        (n_edges - edge_attr.size(0), edge_attr.size(1)))
+                    edge_attr = torch.cat([edge_attr, pad], dim=0)
+                else:
+                    edge_attr = edge_attr[:n_edges]
+            return self.gnn(data.x, edge_index, edge_attr)
+        return self.gnn(data.x, edge_index)
+
     def neighbor_ablation(self, data, node_idx):
         """Remove all neighbors of a node and measure score change.
 
@@ -19,7 +43,7 @@ class GNNAblation:
         import torch
 
         with torch.no_grad():
-            out = self.gnn(data.x, data.edge_index)
+            out = self._forward(data, data.edge_index)
             original_score = float(torch.softmax(out, dim=1)[node_idx, 1].item())
 
         # Mask edges: remove all edges connected to node_idx
@@ -28,7 +52,7 @@ class GNNAblation:
         ablated_edges = edge[:, mask]
 
         with torch.no_grad():
-            out_abl = self.gnn(data.x, ablated_edges)
+            out_abl = self._forward(data, ablated_edges)
             ablated_score = float(torch.softmax(out_abl, dim=1)[node_idx, 1].item())
 
         return {
@@ -65,11 +89,47 @@ class GNNAblation:
             sub_edge = edge[:, mask]
 
             with torch.no_grad():
-                out = self.gnn(data.x, sub_edge)
+                out = self._forward(data, sub_edge)
                 score = float(torch.softmax(out, dim=1)[node_idx, 1].item())
             densities.append({"density_fraction": frac, "score": score})
 
         return densities
+
+    def edge_attr_sensitivity(self, data):
+        """Measured impact of the graph's EDGE FEATURES.
+
+        Compares true model output against output with zeroed edge_attr.
+        Returns the mean |delta| over nodes — a COMPUTED value, not a label
+        (audit finding #5b: this used to be hardcoded 'below_threshold').
+
+        Requires the model to accept (x, edge_index, edge_attr), which the
+        Phase 2 TransformerConv rewiring provides.
+        """
+        import torch
+
+        self.gnn.eval()
+        edge_attr = getattr(data, "edge_attr", None)
+        if edge_attr is None:
+            return {"mean_delta": 0.0, "max_delta": 0.0,
+                    "affected_nodes": 0}
+
+        try:
+            with torch.no_grad():
+                out = self.gnn(data.x, data.edge_index, edge_attr)
+                p_true = torch.softmax(out, dim=1)[:, 1]
+                zeroed = torch.zeros_like(edge_attr)
+                out_z = self.gnn(data.x, data.edge_index, zeroed)
+                p_zero = torch.softmax(out_z, dim=1)[:, 1]
+            deltas = (p_true - p_zero).abs()
+            return {
+                "mean_delta": float(deltas.mean()),
+                "max_delta": float(deltas.max()),
+                "affected_nodes": int((deltas > 0.01).sum()),
+            }
+        except TypeError:
+            # Model ignores edge features entirely — that IS the measurement
+            return {"mean_delta": 0.0, "max_delta": 0.0,
+                    "affected_nodes": 0}
 
     def sensitivity_map(self, data):
         """Compute per-node sensitivity for all nodes.
@@ -81,7 +141,7 @@ class GNNAblation:
         import torch
 
         with torch.no_grad():
-            out = self.gnn(data.x, data.edge_index)
+            out = self._forward(data, data.edge_index)
             scores = torch.softmax(out, dim=1)[:, 1].numpy()
 
         return {

@@ -1,0 +1,136 @@
+{
+  "schema": "prometheus.drift.v1",
+  "windows": {
+    "ref_step_max": 19.25,
+    "cur_step_min": 48.75
+  },
+  "normal_only": {
+    "verdict_counts": {
+      "stable": 11,
+      "moderate": 1,
+      "significant": 8,
+      "unknown": 0
+    },
+    "max_psi": 7.21785,
+    "top_shifts": [
+      {
+        "column": "sender_tx_count",
+        "psi": 7.21785,
+        "verdict": "significant"
+      },
+      {
+        "column": "velocity_50",
+        "psi": 7.18893,
+        "verdict": "significant"
+      },
+      {
+        "column": "ip_account_count",
+        "psi": 6.476509,
+        "verdict": "significant"
+      },
+      {
+        "column": "sender_amount_zscore",
+        "psi": 3.150429,
+        "verdict": "significant"
+      },
+      {
+        "column": "sender_avg_amount",
+        "psi": 3.071367,
+        "verdict": "significant"
+      },
+      {
+        "column": "hour_of_day",
+        "psi": 2.155634,
+        "verdict": "significant"
+      },
+      {
+        "column": "time_since_last_tx",
+        "psi": 1.452522,
+        "verdict": "significant"
+      },
+      {
+        "column": "is_night",
+        "psi": 0.513379,
+        "verdict": "significant"
+      }
+    ]
+  },
+  "full_late_window": {
+    "verdict_counts": {
+      "stable": 11,
+      "moderate": 1,
+      "significant": 8,
+      "unknown": 0
+    },
+    "max_psi": 7.235574,
+    "top_shifts": [
+      {
+        "column": "sender_tx_count",
+        "psi": 7.235574,
+        "verdict": "significant"
+      },
+      {
+        "column": "velocity_50",
+        "psi": 7.004331,
+        "verdict": "significant"
+      },
+      {
+        "column": "ip_account_count",
+        "psi": 6.437171,
+        "verdict": "significant"
+      },
+      {
+        "column": "sender_amount_zscore",
+        "psi": 3.192101,
+        "verdict": "significant"
+      },
+      {
+        "column": "sender_avg_amount",
+        "psi": 3.109208,
+        "verdict": "significant"
+      },
+      {
+        "column": "time_since_last_tx",
+        "psi": 1.447654,
+        "verdict": "significant"
+      },
+      {
+        "column": "hour_of_day",
+        "psi": 1.229021,
+        "verdict": "significant"
+      },
+      {
+        "column": "is_night",
+        "psi": 0.486082,
+        "verdict": "significant"
+      }
+    ]
+  },
+  "attack_induced_gap_top": [
+    {
+      "column": "hour_of_day",
+      "psi_delta": -0.9266
+    },
+    {
+      "column": "velocity_50",
+      "psi_delta": -0.1846
+    },
+    {
+      "column": "sender_amount_zscore",
+      "psi_delta": 0.0417
+    },
+    {
+      "column": "ip_account_count",
+      "psi_delta": -0.0393
+    },
+    {
+      "column": "sender_avg_amount",
+      "psi_delta": 0.0378
+    }
+  ],
+  "interpretation": "normal-only PSI isolates organic drift; the gap column quantifies how much of observed shift attacks themselves cause; NOTE hour_of_day / is_night are mechanical functions of the step clock (step % 24), so their PSI is clock-driven by construction",
+  "mechanical_clock_columns": [
+    "hour_of_day",
+    "is_night"
+  ]
+}

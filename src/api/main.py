@@ -10,9 +10,13 @@ from pathlib import Path
 import numpy as np
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Ensure src is on path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -21,14 +25,20 @@ from twin.twin import FinancialDigitalTwin
 from twin.typologies import run_typology
 from attack.compiler import AttackCompiler
 from attack.benchmark_attacks import BENCHMARK_ATTACKS, HELD_OUT_ATTACKS, TRAINABLE_ATTACKS, generate_training_attacks
-from blue.features import compute_features, build_graph_data
-from blue.xgb_model import XGBFraudDetector
-from blue.gnn_model import GNNFraudDetector
-from blue.meta_model import MetaModel
+from blue.ensemble import BlueTeamEnsemble
 from sensitivity.engine import SensitivityEngine
 from feedback.loop import FeedbackLoop
-from scoring.structured_score import compute_structured_score, score_from_ml_probs, get_band, get_band_color
+from scoring.structured_score import (
+    compute_structured_score, score_from_ml_probs, get_band, get_band_color,
+    FittedStructuredScore,
+)
 from eval.harness import full_report, multi_prevalence_eval
+from api.graph import build_knowledge_graph, list_trajectories_summary, extract_node_profile
+from investigate.case_manager import CaseManager
+
+STRUCTURED_WEIGHTS_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "artifacts", "structured_weights.json")
 
 app = FastAPI(title="Project Prometheus Dashboard", version="1.0.0")
 
@@ -48,6 +58,8 @@ DEMO_STATE = {
     "sensitivity": None,
     "feedback": None,
     "report": None,
+    "structured": None,
+    "case_manager": None,
     "event_log": [],
     "ready": False,
 }
@@ -56,6 +68,11 @@ DEMO_STATE = {
 # ---------------------------------------------------------------------------
 # API Routes
 # ---------------------------------------------------------------------------
+
+@app.get("/.well-known/appspecific/com.chrome.devtools.json")
+def chrome_devtools_dummy():
+    """Dummy endpoint to suppress Chrome DevTools 404 warnings in the logs."""
+    return JSONResponse(content={})
 
 @app.get("/api/status")
 def get_status():
@@ -68,18 +85,39 @@ def get_status():
 
 @app.get("/api/attack-types")
 def get_attack_types():
-    """Return all benchmark attack types with metadata."""
+    """Return all benchmark attack types with metadata (LIST not dict —
+    finding #9 fix: dashboard forEach on object was silently dead)."""
     from attack.benchmark_attacks import ATTACK_METADATA
+    attacks = [{"id": k, **v} for k, v in sorted(ATTACK_METADATA.items())]
     return {
-        "attacks": ATTACK_METADATA,
+        "attacks": attacks,
         "held_out": list(HELD_OUT_ATTACKS),
         "trainable": list(TRAINABLE_ATTACKS),
     }
 
 
+class InitRequest(BaseModel):
+    seed: int = 42
+    num_accounts: int = 500
+    num_steps: int = 100
+
+
 @app.post("/api/init")
-def initialize(seed: int = 42, num_accounts: int = 2000, num_steps: int = 200):
-    """Initialize the twin, compiler, and Blue Team."""
+def initialize(req: InitRequest = None,
+                seed: int = 42, num_accounts: int = 500,
+                num_steps: int = 100):
+    """Initialize the twin, compiler, and Blue Team.
+
+    Accepts EITHER a JSON body (dashboard) or query params (TestClient).
+    Tracebacks NEVER leak to clients (finding #12 fix)."""
+    if req is not None:
+        seed = req.seed
+        num_accounts = req.num_accounts
+        num_steps = req.num_steps
+        
+    random.seed(seed)
+    np.random.seed(seed)
+    
     try:
         twin = FinancialDigitalTwin(seed=seed, num_accounts=num_accounts, num_merchants=100, num_steps=num_steps)
         twin.run()
@@ -87,209 +125,172 @@ def initialize(seed: int = 42, num_accounts: int = 2000, num_steps: int = 200):
         compiler = AttackCompiler(twin, seed=seed)
         generate_training_attacks(compiler, twin.world)
 
-        # Build features and train Blue Team
-        X, y, fnames = compute_features(twin.world.transactions, twin.world)
-        xgb = XGBFraudDetector(seed=seed)
-        xgb.fit(X, y, fnames)
+        # Blue team as ONE ensemble object (finding #1: the loop previously
+        # received None because this construction didn't exist).
+        blue = BlueTeamEnsemble.untrained(seed=seed)
+        fit_diag = blue.fit_transactions(list(twin.world.transactions),
+                                         twin.world)
 
-        data, node_to_idx = build_graph_data(twin.world.transactions, twin.world)
-        gnn = None
-        if data is not None:
-            gnn = GNNFraudDetector(in_channels=data.x.shape[1], seed=seed)
-            gnn.fit(data)
+        # Fitted structured 0-1000 score (P8): logistic head over the six
+        # ensemble signal columns; fitted here in-sample (declared) and
+        # persisted so /api/score uses real per-column contributions instead
+        # of the old faked-identical-inputs shortcut (finding #6).
+        struct: FittedStructuredScore | None
+        try:
+            from blue.features import compute_features as _cf
+            struct = FittedStructuredScore()
+            X_all6, _y_all, _n = _cf(list(twin.world.transactions),
+                                     twin.world)
+            sig_cols = blue.score_all_signals(list(twin.world.transactions),
+                                              twin.world, manifold=None)
+            X_head = np.column_stack(
+                [np.asarray(sig_cols[c], dtype=np.float64)
+                 for c in struct.columns])
+            struct.fit(X_head, [1.0 if t.get("is_fraud") else 0.0
+                                for t in twin.world.transactions])
+            struct.fit_meta["source"] = "fitted_in_sample"
+            struct.save(STRUCTURED_WEIGHTS_PATH)
+        except Exception as exc:                     # noqa: BLE001
+            logger.warning("structured score fitting failed: %s", exc)
+            struct = None
 
-        # Meta-model
-        meta = MetaModel(seed=seed)
-        xgb_probs = xgb.predict_proba(X)
-        if gnn is not None and data is not None:
-            node_scores = gnn.predict_proba(data)[:, 1]
-            gnn_tx_scores = np.array([
-                node_scores[node_to_idx[str(tx['from'])]] if str(tx['from']) in node_to_idx else 0.5
-                for tx in twin.world.transactions
-            ])
-        else:
-            gnn_tx_scores = np.full(len(X), 0.5)
-        X_meta = np.column_stack([xgb_probs, gnn_tx_scores])
-        meta.fit(X_meta, y)
+        # Sensitivity engine (computed surface, finding #5b keys)
+        sensitivity = SensitivityEngine(xgb_model=blue.xgb.model,
+                                        gnn_model=blue.gnn.model if blue.gnn else None,
+                                        feature_names=blue.feature_names)
 
-        # Sensitivity engine
-        sensitivity = SensitivityEngine(xgb_model=xgb.model, gnn_model=gnn.model if gnn else None, feature_names=fnames)
+        # Feedback loop with a real blue team
+        feedback = FeedbackLoop(twin, compiler, blue, sensitivity, seed=seed)
 
-        # Feedback loop
-        feedback = FeedbackLoop(twin, compiler, None, sensitivity)
+        # Investigator CaseManager (P8)
+        case_mgr = CaseManager(
+            ensemble=blue,
+            twin=twin,
+            sensitivity=sensitivity,
+            structured=struct,
+            seed=seed,
+        )
+
+        sample_tx_id = next((t["tx_id"] for t in reversed(twin.world.transactions) if t.get("is_fraud")),
+                            (twin.world.transactions[0]["tx_id"] if twin.world.transactions else ""))
 
         DEMO_STATE["twin"] = twin
         DEMO_STATE["compiler"] = compiler
-        DEMO_STATE["blue_team"] = {"xgb": xgb, "gnn": gnn, "meta": meta}
+        DEMO_STATE["blue_team"] = blue
         DEMO_STATE["sensitivity"] = sensitivity
         DEMO_STATE["feedback"] = feedback
+        DEMO_STATE["structured"] = struct
+        DEMO_STATE["case_manager"] = case_mgr
         DEMO_STATE["ready"] = True
-        DEMO_STATE["event_log"] = [{"event": "initialized", "detail": f"{len(twin.world.transactions)} TXs, {len(fnames)} features"}]
+        DEMO_STATE["event_log"] = [{"event": "initialized", "detail": (
+            f"{len(twin.world.transactions)} TXs, {len(blue.feature_names)} "
+            f"features, calibration={fit_diag.get('calibration_method')}, "
+            f"oof={fit_diag.get('oof_used')}")}]
 
         return {
             "status": "ok",
             "transactions": len(twin.world.transactions),
-            "features": len(fnames),
-            "fraud_ratio": float(y.mean()),
-            "graph_nodes": data.x.shape[0] if data is not None else 0,
+            "features": len(blue.feature_names),
+            "fraud_ratio": float(sum(1 for t in twin.world.transactions
+                                     if t.get("is_fraud"))
+                                  / max(1, len(twin.world.transactions))),
+            "graph_nodes": fit_diag.get("graph_nodes", 0),
+            "sample_tx_id": sample_tx_id,
         }
     except Exception as e:
-        import traceback
-        return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
+        import logging
+        logging.getLogger(__name__).exception("init failed")
+        return {"status": "error", "detail": str(e)[:300],
+                "error_code": "INIT_FAILED"}
+
+
+
+
+
+
 
 
 @app.post("/api/demo/run")
 def run_demo():
-    """Run the 3-beat demo sequence.
+    """Run the 3-beat demo through the REAL decontaminated FeedbackLoop.
 
-    Beat 1: Red Team attacks → Blue Team misses (or scores low)
-    Beat 2: Weakness-directed retrain → Blue Team catches it
-    Beat 3: Held-out attack type → Blue Team still catches it (generalization)
+    Beat 1   fresh trainable attacks vs current blue team
+    Beat 2   weakness diagnose -> variants -> decontaminated retrain
+             (eval trajectories excluded; two-axis leakage asserted)
+             -> re-check on FRESH instances
+    Beat 3   held-out types evaluated only (generalization)
     """
     if not DEMO_STATE["ready"]:
         return {"error": "Not initialized. Call /api/init first."}
 
     try:
-        twin = DEMO_STATE["twin"]
-        compiler = DEMO_STATE["compiler"]
-        bt = DEMO_STATE["blue_team"]
-        sensitivity = DEMO_STATE["sensitivity"]
         import numpy as np
+        from blue.splits import lock_holdout
 
-        def _score_txs(txs):
-            if not txs: return 0.0
-            X_a, _, _ = compute_features(txs, twin.world)
-            if len(X_a) == 0: return 0.0
-            xgb_probs = bt["xgb"].predict_proba(X_a)
-            data, node_to_idx = build_graph_data(twin.world.transactions, twin.world)
-            if bt.get("gnn") is not None and data is not None:
-                node_scores = bt["gnn"].predict_proba(data)[:, 1]
-                gnn_tx_scores = np.array([
-                    node_scores[node_to_idx[str(tx['from'])]] if str(tx['from']) in node_to_idx else 0.5
-                    for tx in txs
-                ])
-            else:
-                gnn_tx_scores = np.full(len(X_a), 0.5)
-            X_meta = np.column_stack([xgb_probs, gnn_tx_scores])
-            meta_probs = bt["meta"].predict_proba(X_meta)
-            import logging
-            logging.getLogger(__name__).warning("XGB max: %s, GNN max: %s, Meta max: %s", xgb_probs.max(), gnn_tx_scores.max(), meta_probs.max())
-            return float(meta_probs.max())
-
+        feedback = DEMO_STATE["feedback"]
         log = DEMO_STATE["event_log"]
-        log.append({"event": "demo_start", "detail": "Starting 3-beat demo"})
+        log.append({"event": "demo_start",
+                    "detail": "Starting 3-beat demo (decontaminated loop)"})
 
-        # Beat 1: Run trainable attacks, measure recall
-        trainable = list(TRAINABLE_ATTACKS)
-        held_out = list(HELD_OUT_ATTACKS)
+        trainable = sorted(TRAINABLE_ATTACKS)
+        held_out = sorted(HELD_OUT_ATTACKS)
 
-        # Generate and score attacks
-        beat1_results = {}
-        for aid in trainable:
-            spec = compiler.compile(BENCHMARK_ATTACKS[aid])
-            traj_id = compiler.execute(spec, twin.world)
-            attack_txs = [tx for tx in twin.world.transactions if tx.get("trajectory_id") == traj_id]
-            if attack_txs:
-                score = _score_txs(attack_txs)
-                beat1_results[aid] = {"caught": score > 0.5, "score": round(score, 4), "txs": len(attack_txs)}
-            else:
-                beat1_results[aid] = {"caught": False, "score": 0.0, "txs": 0}
+        import random
+        # Lock the two-axis holdout for THIS session's training pools
+        # Use a random seed so successive demo runs give dynamic results
+        demo_seed = random.randint(1, 1000000)
+        holdout = lock_holdout(seed=demo_seed, held_out_types=tuple(held_out))
 
-        recall_before = sum(1 for r in beat1_results.values() if r["caught"]) / max(1, len(beat1_results))
-        log.append({"event": "beat1", "detail": f"Recall before: {recall_before:.2%}", "results": beat1_results})
+        report = feedback.run_cycle(
+            attack_ids=trainable,
+            held_out_ids=held_out,
+            holdout_spec=holdout,
+            n_instances=2,
+        )
 
-        # Beat 2: Diagnose weakness, generate variants, retrain
-        X_all, y_all, fnames = compute_features(twin.world.transactions, twin.world)
-        weakness = sensitivity.weakness_direction(X_all)
-        variants = compiler.generate_variants(weakness, n=15)
-        log.append({"event": "beat2_diagnose", "detail": f"Weakness: {weakness['weakness']}, variants: {len(variants)}"})
+        beat1_results = report.get("per_type_before", {})
+        beat2_results = report.get("per_type_after", {})
+        gen_recall = report.get("generalization_recall_unseen_generator")
 
-        # Retrain XGBoost with hard negatives
-        for v in variants:
-            try:
-                plan = compiler.compile(v)
-                compiler.execute(plan, twin.world)
-            except Exception:
-                continue
+        log.append({"event": "beat1", "detail":
+                    f"Recall before: {report['recall_before']:.2%}"})
+        log.append({"event": "beat2", "detail":
+                    f"Round(s)={report['retrain_rounds_used']}, "
+                    f"recall after: {report['recall_after']:.2%}, "
+                    f"blind spot: {report['blind_spot']}"})
+        log.append({"event": "beat3", "detail":
+                    f"Held-out recall: {gen_recall}"})
+        log.append({"event": "evidence_manifest",
+                    "detail": [e["evidence_id"] + ":" + e["kind"]
+                               for e in report.get("evidence_manifest", [])]})
 
-        X_new, y_new, _ = compute_features(twin.world.transactions, twin.world)
-        bt["xgb"].fit(X_new, y_new, fnames)
-        
-        data_new, node_to_idx_new = build_graph_data(twin.world.transactions, twin.world)
-        if bt.get("gnn") is not None and data_new is not None:
-            bt["gnn"].fit(data_new)
-            
-        xgb_probs_new = bt["xgb"].predict_proba(X_new)
-        if bt.get("gnn") is not None and data_new is not None:
-            node_scores = bt["gnn"].predict_proba(data_new)[:, 1]
-            gnn_tx_scores = np.array([
-                node_scores[node_to_idx_new[str(tx['from'])]] if str(tx['from']) in node_to_idx_new else 0.5
-                for tx in twin.world.transactions
-            ])
-        else:
-            gnn_tx_scores = np.full(len(X_new), 0.5)
-            
-        X_meta_new = np.column_stack([xgb_probs_new, gnn_tx_scores])
-        bt["meta"].fit(X_meta_new, y_new)
-
-        # Re-evaluate
-        beat2_results = {}
-        for aid in trainable:
-            spec = compiler.compile(BENCHMARK_ATTACKS[aid])
-            traj_id = compiler.execute(spec, twin.world)
-            attack_txs = [tx for tx in twin.world.transactions if tx.get("trajectory_id") == traj_id]
-            if attack_txs:
-                score = _score_txs(attack_txs)
-                beat2_results[aid] = {"caught": score > 0.5, "score": round(score, 4)}
-            else:
-                beat2_results[aid] = {"caught": False, "score": 0.0}
-
-        recall_after = sum(1 for r in beat2_results.values() if r["caught"]) / max(1, len(beat2_results))
-        log.append({"event": "beat2", "detail": f"Recall after: {recall_after:.2%}", "results": beat2_results})
-
-        # Beat 3: Held-out attacks
-        beat3_results = {}
-        for aid in held_out:
-            spec = compiler.compile(BENCHMARK_ATTACKS[aid])
-            traj_id = compiler.execute(spec, twin.world)
-            attack_txs = [tx for tx in twin.world.transactions if tx.get("trajectory_id") == traj_id]
-            if attack_txs:
-                score = _score_txs(attack_txs)
-                beat3_results[aid] = {"caught": score > 0.5, "score": round(score, 4), "held_out": True}
-            else:
-                beat3_results[aid] = {"caught": False, "score": 0.0, "held_out": True}
-
-        gen_recall = sum(1 for r in beat3_results.values() if r["caught"]) / max(1, len(beat3_results))
-        log.append({"event": "beat3", "detail": f"Held-out recall: {gen_recall:.2%}", "results": beat3_results})
-
-        # Build Blind-Spot Report
-        report = {
-            "blind_spot": weakness["weakness"],
-            "evidence": {
-                "gnn_contribution": "low" if weakness["target_model"] == "GNN" else "high",
-                "sequence_signal": "low",
-                "graph_density": "below_threshold",
-            },
-            "generated_fixes": len(variants),
-            "recall_before": round(recall_before, 4),
-            "recall_after": round(recall_after, 4),
-            "generalization_recall_unseen_generator": round(gen_recall, 4),
-            "retrain_rounds_used": 1,
-            "max_retrain_rounds": 2,
+        DEMO_STATE["report"] = {
+            "blind_spot": report["blind_spot"],
+            "recall_before": report["recall_before"],
+            "recall_after": report["recall_after"],
+            "improved": report["improved"],
+            "generated_fixes": report["generated_fixes"],
+            "retrain_rounds_used": report["retrain_rounds_used"],
+            "max_retrain_rounds": report["max_retrain_rounds"],
+            "generalization_recall_unseen_generator": gen_recall,
+            "evidence_ids": report["evidence_ids"],
         }
-        DEMO_STATE["report"] = report
-        log.append({"event": "demo_complete", "detail": "3-beat demo finished", "report": report})
 
         return {
             "status": "ok",
-            "beat1": {"recall": round(recall_before, 4), "results": beat1_results},
-            "beat2": {"recall": round(recall_after, 4), "results": beat2_results, "weakness": weakness},
-            "beat3": {"recall": round(gen_recall, 4), "results": beat3_results},
-            "report": report,
+            "beat1": {"recall": report["recall_before"],
+                      "results": beat1_results},
+            "beat2": {"recall": report["recall_after"],
+                      "results": beat2_results,
+                      "blind_spot": report["blind_spot"]},
+            "beat3": {"recall": gen_recall},
+            "report": DEMO_STATE["report"],
         }
     except Exception as e:
-        import traceback
-        return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
+        import logging
+        logging.getLogger(__name__).exception("demo failed")
+        return {"status": "error", "detail": str(e)[:300],
+                "error_code": "DEMO_FAILED"}
 
 
 @app.get("/api/report")
@@ -305,28 +306,92 @@ def get_event_log():
 
 @app.get("/api/score")
 def get_score(tx_id: str = ""):
-    """Get structured score for a transaction."""
+    """Deep-path structured score from HONEST per-column signals (finding
+    #6 fix: no more faking GNN/meta as XGB copies)."""
     if not DEMO_STATE["ready"]:
         return {"error": "Not initialized"}
     twin = DEMO_STATE["twin"]
-    txs = [tx for tx in twin.world.transactions if tx.get("tx_id") == tx_id]
-    if not txs:
+    txs_all = [tx for tx in twin.world.transactions if tx.get("tx_id") == tx_id]
+    if not txs_all:
         return {"error": f"Transaction {tx_id} not found"}
-    tx = txs[0]
-    from blue.features import compute_features
-    X, y, _ = compute_features([tx], twin.world)
-    bt = DEMO_STATE["blue_team"]
-    if len(X) == 0:
-        return {"error": "No features"}
-    xgb_prob = float(bt["xgb"].predict_proba(X)[0])
-    score = score_from_ml_probs(xgb_prob, xgb_prob, xgb_prob)
+    tx = txs_all[0]
+    bt: BlueTeamEnsemble = DEMO_STATE["blue_team"]
+    struct: Optional[FittedStructuredScore] = DEMO_STATE["structured"]
+
+    signals = bt.score_all_signals([tx], twin.world, manifold=None)
+    sig_scalar = {k: float(v[0]) if len(v) else 0.0
+                  for k, v in signals.items()}
+
+    if struct is not None:
+        deep = struct.predict_row(sig_scalar)
+        weights_source = struct.fit_meta.get("source", "fitted")
+    else:
+        prob = sig_scalar["meta"]
+        legacy = score_from_ml_probs(prob, prob, prob)
+        deep = {"score": legacy["score"], "band": legacy["band"],
+                "p_fraud": round(prob, 4),
+                "weights_provenance": {"source": "legacy_fallback"}}
+        weights_source = "legacy_fallback"
+
+    # Safely format counterfactual object
+    cf_raw = deep.get("counterfactual")
+    if isinstance(cf_raw, dict):
+        cf_formatted = f"{cf_raw.get('action', 'Shift')} {cf_raw.get('delta_needed', 0):+.4f} in 'meta' probability to shift into {cf_raw.get('to_reach', 'REVIEW')}"
+    elif cf_raw is not None:
+        cf_formatted = str(cf_raw)
+    else:
+        cf_formatted = "Feature vectors reside within normal baseline distribution"
+
     return {
         "tx_id": tx_id,
         "amount": tx.get("amount"),
         "is_fraud": tx.get("is_fraud"),
-        "ml_probability": round(xgb_prob, 4),
-        "structured_score": score,
+        "ml_probability": round(sig_scalar["meta"], 4),
+        "signal_columns": sig_scalar,
+        "structured_score": deep["score"],
+        "band": deep.get("band"),
+        "top_reason_column": deep.get("top_reason_column"),
+        "counterfactual": cf_formatted,
+        "weights_source": weights_source,
     }
+
+
+@app.get("/api/sample-txs")
+def get_sample_transactions():
+    """Return a curated selection of benign, review, and high-risk transactions."""
+    if not DEMO_STATE["ready"]:
+        return {"samples": []}
+    twin = DEMO_STATE["twin"]
+    
+    benign_txs = [t for t in twin.world.transactions if not t.get("is_fraud")]
+    fraud_txs = [t for t in twin.world.transactions if t.get("is_fraud")]
+    
+    samples = []
+    if benign_txs:
+        sampled_benign = random.sample(benign_txs, min(5, len(benign_txs)))
+        for t in sampled_benign:
+            samples.append({
+                "tx_id": t["tx_id"],
+                "from": t.get("from"),
+                "to": t.get("to"),
+                "amount": t.get("amount"),
+                "is_fraud": False,
+                "category": t.get("category", "retail"),
+                "type": "Benign (APPROVE)",
+            })
+    if fraud_txs:
+        sampled_fraud = random.sample(fraud_txs, min(5, len(fraud_txs)))
+        for t in sampled_fraud:
+            samples.append({
+                "tx_id": t["tx_id"],
+                "from": t.get("from"),
+                "to": t.get("to"),
+                "amount": t.get("amount"),
+                "is_fraud": True,
+                "category": t.get("category", "retail"),
+                "type": "Attack (DECLINE)",
+            })
+    return {"samples": samples}
 
 
 @app.get("/api/eval")
@@ -335,25 +400,251 @@ def run_evaluation():
     if not DEMO_STATE["ready"]:
         return {"error": "Not initialized"}
     twin = DEMO_STATE["twin"]
-    bt = DEMO_STATE["blue_team"]
-    from blue.features import compute_features
-    X, y, _ = compute_features(twin.world.transactions, twin.world)
-    scores = bt["xgb"].predict_proba(X)
-    report = full_report(y, scores)
+    bt: BlueTeamEnsemble = DEMO_STATE["blue_team"]
+    scores = bt.score_transactions(list(twin.world.transactions), twin.world)
+    y = [1.0 if t.get("is_fraud") else 0.0 for t in twin.world.transactions]
+    import numpy as _np
+    report = full_report(_np.asarray(y), scores)
     return report
+
+
+@app.get("/api/graph")
+def get_knowledge_graph(
+    filter: str = "overview",
+    trajectory_id: Optional[str] = None,
+    node_id: Optional[str] = None,
+    max_nodes: int = 150,
+    max_edges: int = 250,
+):
+    """Return dynamic multi-relational Knowledge Graph computed from WorldState."""
+    if not DEMO_STATE["ready"]:
+        return {"error": "Not initialized. Call /api/init first."}
+    twin = DEMO_STATE["twin"]
+    bt = DEMO_STATE["blue_team"]
+    return build_knowledge_graph(
+        world=twin.world,
+        ensemble=bt,
+        filter_type=filter,
+        trajectory_id=trajectory_id,
+        node_id=node_id,
+        max_nodes=max_nodes,
+        max_edges=max_edges,
+    )
+
+
+@app.get("/api/graph/trajectories")
+def get_graph_trajectories():
+    """List all logged attack trajectories for Knowledge Graph filtering."""
+    if not DEMO_STATE["ready"]:
+        return {"trajectories": []}
+    twin = DEMO_STATE["twin"]
+    return {"trajectories": list_trajectories_summary(twin.world)}
+
+
+@app.get("/api/graph/node/{node_id}")
+def get_graph_node(node_id: str):
+    """Get detailed profile for a Knowledge Graph entity node."""
+    if not DEMO_STATE["ready"]:
+        return {"error": "Not initialized"}
+    twin = DEMO_STATE["twin"]
+    bt = DEMO_STATE["blue_team"]
+    return extract_node_profile(twin.world, node_id, ensemble=bt)
+
+
+class InvestigateRequest(BaseModel):
+    case_id: str = "CASE_001"
+    tx_ids: List[str] = []
+
+
+@app.post("/api/investigate")
+def run_investigation(req: InvestigateRequest):
+    """Run CaseManager deep investigation with EvidenceStore provenance."""
+    if not DEMO_STATE["ready"]:
+        return {"error": "Not initialized"}
+    case_mgr = DEMO_STATE.get("case_manager")
+    if case_mgr is None:
+        return {"error": "CaseManager not available"}
+    twin = DEMO_STATE["twin"]
+    tx_ids = req.tx_ids
+    if not tx_ids:
+        # Default to recent fraud or suspicious transactions
+        tx_ids = [t["tx_id"] for t in twin.world.transactions if t.get("is_fraud")][-5:]
+        if not tx_ids and twin.world.transactions:
+            tx_ids = [twin.world.transactions[-1]["tx_id"]]
+    try:
+        case_report = case_mgr.run_case(req.case_id, tx_ids)
+        return case_report
+    except Exception as e:
+        logger.exception("investigation failed")
+        return {"status": "error", "detail": str(e)[:300], "error_code": "INVESTIGATE_FAILED"}
+
+
+class InjectRequest(BaseModel):
+    attack_type: str
+
+@app.post("/api/stream/inject")
+def inject_stream(req: InjectRequest):
+    if not DEMO_STATE.get("ready"):
+        return {"error": "Not initialized"}
+    if "pending_injections" not in DEMO_STATE:
+        DEMO_STATE["pending_injections"] = []
+    DEMO_STATE["pending_injections"].append(req.attack_type)
+    return {"status": "ok"}
+
+
+@app.get("/api/stream")
+async def live_stream():
+    """SSE: stream a live red/blue simulation step-by-step with real dynamic attacks.
+
+    Each event is a JSON dict with {type, step, data}. The client
+    reconstructs the War-Room view from these events."""
+    import json as _json
+    import asyncio
+
+    async def event_gen():
+        if not DEMO_STATE["ready"]:
+            yield "data: " + _json.dumps({"type": "error", "detail": "not initialized"}) + "\n\n"
+            return
+        twin = DEMO_STATE["twin"]
+        bt: BlueTeamEnsemble = DEMO_STATE["blue_team"]
+        
+        # Advance the world randomly to ensure stream is not identical
+        random.seed()
+        
+        for step in range(30):
+            step_txs = twin.step()
+            injected_fraud = []
+            attack_name = None
+
+            # Dynamic Adversarial Attacks across simulation timeline
+            accts = list(twin.world.accounts.keys())
+            merchs = list(twin.world.merchants.keys())
+
+            if accts and merchs:
+                attack_type = None
+                pending = DEMO_STATE.get("pending_injections", [])
+                if pending:
+                    attack_type = pending.pop(0)
+                elif random.random() < 0.2: # 20% chance of attack per step
+                    attack_type = random.choice(["A3", "A1", "A4", "A6", "A5"])
+                
+                if attack_type == "A3":
+                    attack_name = "A3 Card-Testing Micro Probes"
+                    src = random.choice(accts)
+                    for m_idx in range(min(4, len(merchs))):
+                        tx_dict = twin.world.log_transaction(
+                            from_id=src, to_id=merchs[m_idx],
+                            amount=round(random.uniform(0.10, 0.95), 2),
+                            step=twin.world.current_step, is_fraud=True,
+                            category="retail", mechanism="rule_compiler",
+                        )
+                        injected_fraud.append(tx_dict)
+                elif attack_type == "A1" and len(accts) > 5:
+                    attack_name = "A1 Account Takeover"
+                    victim = random.choice(accts)
+                    tx1 = twin.world.log_transaction(
+                        from_id=victim, to_id=random.choice(merchs), amount=1.00,
+                        step=twin.world.current_step, is_fraud=True,
+                        category="retail", mechanism="rule_compiler",
+                    )
+                    tx2 = twin.world.log_transaction(
+                        from_id=victim, to_id=random.choice(merchs), amount=round(random.uniform(28000, 65000), 2),
+                        step=twin.world.current_step, is_fraud=True,
+                        category="retail", mechanism="rule_compiler",
+                    )
+                    injected_fraud.extend([tx1, tx2])
+                elif attack_type == "A4" and len(accts) > 10:
+                    attack_name = "A4 Mule Fan-In Funnel"
+                    mule = random.choice(accts)
+                    senders = random.sample(accts, min(4, len(accts)))
+                    for sender in senders:
+                        if sender != mule:
+                            t = twin.world.log_transaction(
+                                from_id=sender, to_id=mule, amount=round(random.uniform(8000, 18000), 2),
+                                step=twin.world.current_step, is_fraud=True,
+                                category="transfer", mechanism="rule_compiler",
+                            )
+                            injected_fraud.append(t)
+                elif attack_type == "A6":
+                    attack_name = "A6 Fake Storefront Cash-Out"
+                    t = twin.world.log_transaction(
+                        from_id=random.choice(accts), to_id=random.choice(merchs),
+                        amount=round(random.uniform(45000, 92000), 2),
+                        step=twin.world.current_step, is_fraud=True,
+                        category="retail", mechanism="rule_compiler",
+                    )
+                    injected_fraud.append(t)
+                elif attack_type == "A5" and len(accts) > 8:
+                    attack_name = "A5 Scatter-Gather Layering"
+                    send_recv = random.sample(accts, 2)
+                    t = twin.world.log_transaction(
+                        from_id=send_recv[0], to_id=send_recv[1], amount=round(random.uniform(15000, 35000), 2),
+                        step=twin.world.current_step, is_fraud=True,
+                        category="transfer", mechanism="rule_compiler",
+                    )
+                    injected_fraud.append(t)
+
+            all_step_txs = step_txs + injected_fraud
+            fraud_txs = [t for t in all_step_txs if t.get("is_fraud")]
+            normal_txs = [t for t in all_step_txs if not t.get("is_fraud")]
+            scores = bt.score_transactions(all_step_txs, twin.world) if all_step_txs else np.array([])
+            peak = float(scores.max()) if scores.size else 0.0
+            caught = int((scores >= 0.5).sum()) if scores.size else 0
+            high_risk_tx_ids = [t["tx_id"] for t, s in zip(all_step_txs, scores) if s >= 0.7]
+
+            payload = {
+                "type": "step",
+                "step": step + 1,
+                "normal": len(normal_txs),
+                "fraud": len(fraud_txs),
+                "peak_score": round(peak, 4),
+                "caught": caught,
+                "attack_type": attack_name,
+                "total_volume": round(sum(t.get("amount", 0) for t in all_step_txs), 2),
+                "sample_tx_id": high_risk_tx_ids[0] if high_risk_tx_ids else (all_step_txs[0]["tx_id"] if all_step_txs else ""),
+            }
+            yield "data: " + _json.dumps(payload) + "\n\n"
+            await asyncio.sleep(1.0) # Add a real delay to make the stream readable
+        yield "data: " + _json.dumps({"type": "done"}) + "\n\n"
+
+    return StreamingResponse(event_gen(), media_type="text/event-stream")
+
+
+@app.post("/api/combo")
+def run_combo_attack():
+    """Run the GenAI fraud supply-chain combo attack (Phase 10).
+
+    Chains: synthetic-identity onboarding → merchant fraud →
+    layering → cash-out — scored at each stage by the ensemble."""
+    if not DEMO_STATE["ready"]:
+        return {"error": "Not initialized"}
+    try:
+        from combo.supply_chain import SupplyChainCombo
+        twin = DEMO_STATE["twin"]
+        bt: BlueTeamEnsemble = DEMO_STATE["blue_team"]
+        import random
+        combo = SupplyChainCombo(twin, bt, seed=random.randint(1, 1000000))
+        result = combo.run()
+        return result
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).exception("combo failed")
+        return {"status": "error", "detail": str(e)[:300],
+                "error_code": "COMBO_FAILED"}
 
 
 @app.get("/", response_class=HTMLResponse)
 def get_dashboard():
-    """Serve the single-page dashboard."""
+    """Serve the single-page War-Room dashboard."""
     dashboard_path = Path(__file__).parent.parent / "dashboard" / "index.html"
     if dashboard_path.exists():
-        return HTMLResponse(dashboard_path.read_text())
-    return HTMLResponse("<h1>Dashboard not found</h1><p>Build the dashboard at src/dashboard/index.html</p>")
+        return HTMLResponse(dashboard_path.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>Dashboard not found</h1>")
 
 
 def main():
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    print("Starting Prometheus Uvicorn server on http://0.0.0.0:8000 ...", flush=True)
+    uvicorn.run("api.main:app", host="0.0.0.0", port=8000, log_level="info")
 
 
 if __name__ == "__main__":

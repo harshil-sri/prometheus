@@ -1,3 +1,4 @@
+# Python
 __pycache__/
 *.pyc
 *.pyo
@@ -5,10 +6,8 @@ __pycache__/
 .Python
 env/
 venv/
-.env/
 .venv/
 .venvs/
-*.env
 .pytest_cache/
 .coverage
 htmlcov/
@@ -18,17 +17,20 @@ build/
 .idea/
 .vscode/
 
-# Local artifacts
+# Secrets: ignore every env file EXCEPT the tracked template
+.env
+.env.*
+!.env.example
+
+# Local artifacts (scratch only — artifacts/ metric JSONs are committed evidence)
 demo2.json
+demo.json
 run_result*.json
 handoff.md
-test_*.py
+HANDOFF.md
+run_test.py
 scratch/
 
-# Antigravity artifacts
+# Tooling / local overrides
 .gemini/
-HANDOFF.md
-Prometheus_Walkthrough.docx
-demo.json
-run_test.py
 src/generate_docx.py

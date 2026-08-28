@@ -23,7 +23,18 @@ class SensitivityEngine:
 
     # -- Consumer 1: Attack Surface Map ------------------------------------
     def attack_surface_map(self, X, data=None):
-        """Build the Attack Surface Map: per-model sensitivity registry."""
+        """Build the Attack Surface Map: per-model sensitivity registry.
+
+        Phase 3 (finding #5b): every key here is a COMPUTED measurement.
+        The previous 'shared_device' and 'graph_density' entries were both
+        `mean_score` twice — fake structure over one number. Now the GNN
+        block reports distinct measured quantities: neighbour-ablation delta
+        on risky nodes (graph reliance) and edge-attr zeroing delta (feature
+        reliance). If a quantity cannot be computed it is reported as
+        {"computed": false} rather than invented.
+        """
+        import numpy as _np
+
         surface = {}
 
         if self.shap is not None and X is not None:
@@ -36,12 +47,39 @@ class SensitivityEngine:
 
         if self.gnn_abl is not None and data is not None:
             gnn_map = self.gnn_abl.sensitivity_map(data)
+
+            # --- COMPUTED 1: graph-reliance via neighbour ablation on the
+            # riskiest nodes (bounded work) ---
+            node_scores = _np.asarray(gnn_map.get("node_scores", []))
+            ablation_deltas = []
+            if node_scores.size:
+                risky = _np.argsort(-node_scores)[:5]
+                for ni in risky:
+                    try:
+                        abl = self.gnn_abl.neighbor_ablation(data, int(ni))
+                        ablation_deltas.append(abs(abl["delta"]))
+                    except Exception:
+                        continue
+
+            # --- COMPUTED 2: edge-feature reliance via zeroed edge_attr ---
+            try:
+                ea = self.gnn_abl.edge_attr_sensitivity(data)
+            except Exception:
+                ea = {"mean_delta": 0.0, "max_delta": 0.0,
+                      "affected_nodes": 0}
+
             surface["gnn"] = {
                 "model": "gnn",
                 "sensitivity": {
-                    "shared_device": round(float(gnn_map["mean_score"]), 4),
-                    "graph_density": round(float(gnn_map["mean_score"]), 4),
-                    "neighborhood_size": round(float(gnn_map["max_score"]), 4),
+                    "neighbor_ablation_delta_mean":
+                        round(float(_np.mean(ablation_deltas)), 6)
+                        if ablation_deltas else {"computed": False},
+                    "edge_attr_zeroing_delta":
+                        round(float(ea["mean_delta"]), 6),
+                    "riskiest_node_score":
+                        round(float(node_scores.max()), 4)
+                        if node_scores.size else {"computed": False},
+                    "high_risk_node_count": gnn_map.get("high_risk_nodes", 0),
                 },
                 "target": "GNN",
                 "goal": "preserve suspicious economic behavior while diluting graph concentration",

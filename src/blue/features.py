@@ -20,8 +20,26 @@ Consumes the Digital Twin transaction log format. Each transaction is a dict:
 
 Public API:
     compute_features(transactions, world_state=None) -> (X, y, feature_names)
-    build_graph_data(transactions, world_state=None) -> torch_geometric Data | None
+    build_graph_data(transactions, world_state=None) -> (torch_geometric Data | None, node_to_idx)
     get_node_features(account_id, world_state=None)  -> list[float] (cold-start)
+
+PHASE 2 CORRECTNESS NOTES (audit finding #7):
+    * `device_account_count` / `ip_account_count` previously read
+      `device_accounts[dkey]` from a dict keyed by ACCOUNT -> always 0.
+      Now maintained bidirectionally (account->devices AND device->accounts,
+      ip->accounts) with strict causality: counters reflect state BEFORE the
+      current transaction is recorded.
+    * `_seed_histories` was dead: WorldState stores AccountState dataclasses
+      with `linked_devices`. It now reads the real schema (dict payloads also
+      tolerated). The twin persists no per-account IP history, so IP seeding
+      is only available when a dict payload provides one.
+    * Currency map leads with INR (the twin's actual currency) instead of a
+      constant fallback index.
+    * Node features now produce ALL 7 named dimensions in NODE_FEATURE_NAMES
+      order (previously 5 rows against 7 declared names, order mismatched).
+    * Edge attributes are genuinely consumed: a deterministic scalar
+      `edge_weight` (amount emphasis x repetition damping) is attached to the
+      Data object and passed through SAGEConv message passing by the GNN.
 """
 
 import numpy as np
@@ -38,7 +56,7 @@ CATEGORIES = [
 ]
 CAT_MAP = {c: i for i, c in enumerate(CATEGORIES)}
 
-CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY']
+CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'JPY']
 CUR_MAP = {c: i for i, c in enumerate(CURRENCIES)}
 
 NIGHT_HOURS = frozenset(range(0, 6))
@@ -85,6 +103,9 @@ NODE_FEATURE_NAMES = [
 ]
 NODE_FEATURE_DIM = len(NODE_FEATURE_NAMES)
 
+#: deterministic edge-weight shaping: base floor per edge
+EDGE_WEIGHT_FLOOR = 0.5
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -106,9 +127,16 @@ def _is_merchant_like(node_id):
 
 def _seed_histories(world_state):
     """
-    Optionally seed known device/IP bindings from the WorldState so that
-    is_new_device reflects history predating the transaction log.
-    Returns (known_devices, known_ips): acct -> set of identifiers.
+    Seed known device bindings from the WorldState so `is_new_device`
+    reflects history predating the transaction log.
+
+    Supports the real schema (AccountState dataclasses exposing
+    `linked_devices`) plus legacy dict payloads ({'devices': [...],
+    'ips': [...]}) for deserialised snapshots.
+
+    Returns (known_devices, known_ips): acct_id -> set of identifiers.
+    IP seeding is only produced when an explicit payload carries one (the
+    twin itself does not persist per-account IP history yet).
     """
     known_devices, known_ips = {}, {}
     if world_state is None:
@@ -120,15 +148,32 @@ def _seed_histories(world_state):
 
     if isinstance(accounts, dict):
         for acct, info in accounts.items():
-            info = info if isinstance(info, dict) else {}
-            devs = info.get('devices') or []
-            addrs = info.get('ips') or []
-            if devs:
-                known_devices[str(acct)] = {str(d) for d in devs}
-            if addrs:
-                known_ips[str(acct)] = {str(a) for a in addrs}
+            # Dataclass form (AccountState.linked_devices)
+            devs_attr = getattr(info, 'linked_devices', None)
+            if devs_attr:
+                known_devices[str(acct)] = {str(d) for d in devs_attr}
+                continue
+            # Legacy dict payload form
+            if isinstance(info, dict):
+                devs = info.get('devices') or []
+                addrs = info.get('ips') or []
+                if devs:
+                    known_devices[str(acct)] = {str(d) for d in devs}
+                if addrs:
+                    known_ips[str(acct)] = {str(a) for a in addrs}
 
     return known_devices, known_ips
+
+
+def _edge_weight(amount_norm: float, repeat: float) -> float:
+    """Deterministic scalar importance of one transaction edge.
+
+    Amount-heavy edges pass more signal; repeated pair traffic is damped.
+    Consumed by SAGEConv message passing (via Data.edge_weight) and retained
+    alongside the 3-dim edge_attr for interpretability.
+    """
+    w = EDGE_WEIGHT_FLOOR + min(max(amount_norm, 0.0), 1.0)
+    return float(w / (1.0 + repeat))
 
 
 # ---------------------------------------------------------------------------
@@ -166,16 +211,21 @@ def compute_features(transactions, world_state=None):
     for k in sender_txs:
         sender_txs[k].sort(key=lambda h: h[0])
 
-    # ---- Streaming state over device / IP sharing ----
+    # ---- Streaming device/IP sharing state (bidirectional, causal) ------
     known_devices, known_ips = _seed_histories(world_state)
-    device_accounts = defaultdict(set)
-    ip_accounts = defaultdict(set)
+    acct_to_devs = defaultdict(set)
+    dev_to_accts = defaultdict(set)
+    ip_to_accts = defaultdict(set)
     for acct, devs in known_devices.items():
-        device_accounts[acct].update(devs)
+        acct_to_devs[acct].update(devs)
+        for d in devs:
+            dev_to_accts[d].add(acct)
     for acct, addrs in known_ips.items():
-        ip_accounts[acct].update(addrs)
+        ip_to_accts[acct].update(addrs)
+        for a in addrs:
+            ip_to_accts[a].add(acct)
 
-    # Process in step order so device/IP state respects causality,
+    # Process in step order so streaming state respects causality,
     # but write results back to original positions.
     order = sorted(range(n), key=lambda i: int(transactions[i].get('step', 0)))
 
@@ -192,7 +242,7 @@ def compute_features(transactions, world_state=None):
         device = tx.get('device')
         ip = tx.get('ip')
         category = tx.get('category') or 'retail'
-        currency = str(tx.get('currency') or 'USD')
+        currency = str(tx.get('currency') or 'INR')
 
         f = []
 
@@ -230,21 +280,25 @@ def compute_features(transactions, world_state=None):
         )
         f.append(float(rep))                                    # 11
 
-        # --- Device / IP reputation -------------------------------------
+        # --- Device sharing (causal, bidirectional) ----------------------
         if device:
             dkey = str(device)
-            seen = device_accounts.get(from_id, set())
-            f.append(1.0 if dkey not in seen else 0.0)          # 12
-            device_accounts[from_id].add(dkey)
-            f.append(float(max(len(device_accounts[dkey]) - 1, 0)))  # 13
+            seen_before = acct_to_devs[from_id]
+            f.append(1.0 if dkey not in seen_before else 0.0)   # 12 is_new_device
+            # number of OTHER accounts already seen on this device
+            f.append(float(max(len(dev_to_accts[dkey]), 0)))    # 13 device_account_count
+            # commit AFTER computing, preserving strict causality
+            acct_to_devs[from_id].add(dkey)
+            dev_to_accts[dkey].add(from_id)
         else:
             f.append(0.0)                                       # 12
             f.append(0.0)                                       # 13
 
+        # --- IP sharing (causal, bidirectional) --------------------------
         if ip:
             ikey = str(ip)
-            ip_accounts[from_id].add(ikey)
-            f.append(float(max(len(ip_accounts[ikey]) - 1, 0))) # 14
+            f.append(float(max(len(ip_to_accts[ikey]), 0)))     # 14 ip_account_count
+            ip_to_accts[ikey].add(from_id)
         else:
             f.append(0.0)                                       # 14
 
@@ -280,19 +334,23 @@ def build_graph_data(transactions, world_state=None):
     Nodes: internal accounts + merchants (EXT_ entities excluded).
     Edges: transactions (bidirectional) + self-loops fallback.
     Edge attrs: [scaled_amount, normalized_hour, repeat_pair_count].
+    Edge weights: deterministic scalar emphasis fed to SAGEConv message
+    passing (see `_edge_weight`) — edge attributes are CONSUMED, not carried
+    for decoration.
 
     NOTE: labels (is_fraud) are deliberately excluded from all graph
     attributes to prevent label leakage into the GNN.
 
-    Returns torch_geometric.data.Data or None if unavailable/empty.
+    Returns (torch_geometric.data.Data, node_to_idx) or (None, {}) if
+    unavailable/empty.
     '''
     try:
         from torch_geometric.data import Data
     except ImportError:
-        return None
+        return None, {}
 
     if not transactions:
-        return None
+        return None, {}
 
     # ---- Collect unique internal node ids ----
     node_set = set()
@@ -303,7 +361,7 @@ def build_graph_data(transactions, world_state=None):
 
     internal_nodes = sorted(nid for nid in node_set if _is_internal(nid))
     if not internal_nodes:
-        return None
+        return None, {}
 
     node_to_idx = {nid: i for i, nid in enumerate(internal_nodes)}
     n_nodes = len(internal_nodes)
@@ -311,6 +369,7 @@ def build_graph_data(transactions, world_state=None):
     # ---- Edges from transactions (sorted for deterministic repeat counts) --
     edge_list = []
     edge_attr_list = []
+    edge_weight_list = []
     pair_counts = defaultdict(int)
 
     for tx in sorted(transactions, key=lambda t: int(t.get('step', 0))):
@@ -326,24 +385,30 @@ def build_graph_data(transactions, world_state=None):
             hour = (int(tx.get('step', 0)) % 24) / 24.0
             repeat = float(pair_counts[(u, v)] - 1)
             attr = [amt, hour, repeat]
+            w = _edge_weight(amt, repeat)
             edge_list.append([u, v])
             edge_attr_list.append(attr)
+            edge_weight_list.append(w)
             # Reverse edge so message passing is not direction-limited
             edge_list.append([v, u])
             edge_attr_list.append(attr)
+            edge_weight_list.append(w)
 
     if not edge_list:
         # Fully isolated nodes: fall back to self-loops
         edge_list = [[i, i] for i in range(n_nodes)]
-        edge_attr_list = [[0.0, 0.0, 0.0] for _ in range(n_nodes)]
+        edge_attr_list = [[0.0, 0.0, 0.0]] * n_nodes
+        edge_weight_list = [EDGE_WEIGHT_FLOOR] * n_nodes
 
     edge_index = torch.tensor(edge_list, dtype=torch.long).t().contiguous()
     edge_attr = torch.tensor(edge_attr_list, dtype=torch.float)
+    edge_weight = torch.tensor(edge_weight_list, dtype=torch.float)
 
-    # ---- Aggregated node features ----
+    # ---- Aggregated node features (ALL 7 dims, in NODE_FEATURE_NAMES order)
     out_deg = defaultdict(int)
     in_deg = defaultdict(int)
     sent_sum = defaultdict(float)
+    recv_sum = defaultdict(float)
     for tx in transactions:
         f_id = str(tx['from'])
         t_raw = tx.get('to')
@@ -352,18 +417,26 @@ def build_graph_data(transactions, world_state=None):
         sent_sum[f_id] += float(tx.get('amount', 0.0) or 0.0)
         if t_id:
             in_deg[t_id] += 1
+            recv_sum[t_id] += float(tx.get('amount', 0.0) or 0.0)
 
     x_rows = []
     for nid in internal_nodes:
-        deg = out_deg.get(nid, 0) + in_deg.get(nid, 0)
-        deg = deg if deg > 0 else 1  # avoid log(0)
+        od = out_deg.get(nid, 0)
+        ind = in_deg.get(nid, 0)
+        total_sent = sent_sum.get(nid, 0.0)
+        avg_amt = (total_sent / od) if od > 0 else (
+            (recv_sum.get(nid, 0.0) / ind) if ind > 0 else 0.0)
         x_rows.append([
-            deg / 100.0,
-            out_deg.get(nid, 0) / 100.0,
-            min(sent_sum.get(nid, 0.0) / 1000000.0, 10.0),
-            1.0 if 'ACC' in str(nid) else 0.0,
-            1.0 if 'MERCHANT' in str(nid) else 0.0,
+            float(od + ind) / 100.0,                                # total_degree
+            float(od) / 100.0,                                      # out_degree
+            float(ind) / 100.0,                                     # in_degree
+            min(total_sent / 1000000.0, 10.0),                      # total_sent
+            min(avg_amt / 100000.0, 10.0),                          # avg_amount
+            1.0 if _is_account_like(nid) else 0.0,                  # is_account
+            1.0 if _is_merchant_like(nid) else 0.0,                 # is_merchant
         ])
+
+    assert len(x_rows[0]) == NODE_FEATURE_DIM, "node feature parity broken"
 
     x = torch.tensor(x_rows, dtype=torch.float)
 
@@ -381,9 +454,13 @@ def build_graph_data(transactions, world_state=None):
     y_rows = [1.0 if node_fraud.get(nid, False) else 0.0 for nid in internal_nodes]
     y = torch.tensor(y_rows, dtype=torch.float)
 
-    return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y), node_to_idx
+    return (Data(x=x, edge_index=edge_index, edge_attr=edge_attr,
+                 edge_weight=edge_weight, y=y)), node_to_idx
 
 
-def get_node_features(account_id, world_state):
-    """Return default node features for an account. Handle cold-start."""
-    return [0.0, 0.0, 0.0, 1.0, 0.0]
+def get_node_features(account_id, world_state=None):
+    """Cold-start node features — NODE_FEATURE_DIM long, aligned with
+    NODE_FEATURE_NAMES order."""
+    is_acct = 1.0 if _is_account_like(account_id) else 0.0
+    is_merch = 1.0 if _is_merchant_like(account_id) else 0.0
+    return [0.0, 0.0, 0.0, 0.0, 0.0, is_acct, is_merch]

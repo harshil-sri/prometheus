@@ -1,15 +1,21 @@
-# Project Prometheus — Closed-Loop Fraud Detection System
-# Floor (F1-F8) dependencies
-# Python 3.12+
-
-networkx>=3.0
-xgboost>=2.0
-torch>=2.0
-torch-geometric>=2.4
-scikit-learn>=1.2
-shap>=0.45
-fastapi>=0.100
-uvicorn>=0.20
-numpy>=1.24
-requests>=2.28
-python-multipart>=0.0.6
+# Prometheus — verified pins only (every line installed & importable on the
+# dev machine, Python 3.13.11 / Windows / CPU). sdv and gymnasium are appended
+# at the phases that first use them (P7 fidelity, P5 RL-stretch) — do not add
+# unverified lines to this file.
+numpy==2.4.2
+pandas==2.3.3
+scipy==1.17.1
+scikit-learn==1.8.0
+xgboost==3.4.1
+shap==0.52.0
+torch==2.11.0
+torch-geometric==2.8.0.post1
+networkx==3.6.1
+joblib==1.5.3
+fastapi==0.129.0
+uvicorn==0.51.0
+pydantic==2.13.4
+httpx==0.28.1
+python-docx==1.2.0
+sdv==1.38.1
+pytest==9.0.2

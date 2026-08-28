@@ -1,0 +1,17 @@
+{
+  "schema": "prometheus.feedback_cycle.v1",
+  "source": "api /api/demo/run via decontaminated FeedbackLoop",
+  "seed": 42,
+  "recall_before": 0.875,
+  "recall_after": 1.0,
+  "improved": true,
+  "blind_spot": "relational camouflage",
+  "generalization_recall_unseen_generator": 0.5,
+  "retrain_rounds_used": 1,
+  "max_retrain_rounds": 2,
+  "evidence_ids": [
+    "EVD_0A74A3E68412",
+    "EVD_A0D316CE7721",
+    "EVD_3DABCBD69BAC"
+  ]
+}

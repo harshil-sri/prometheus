@@ -23,6 +23,7 @@ from twin.core import WorldState
 from twin.twin import FinancialDigitalTwin
 from twin.typologies import run_typology as run_twin_typology
 from .spec import AttackSpec, WeaknessDescriptor, build_attack_spec
+from .rl_agent import RLAgent
 
 
 # ---------------------------------------------------------------------------
@@ -54,6 +55,14 @@ class AttackCompiler:
         self.world = twin.world
         self.seed = seed
         self.rng = random.Random(seed)
+        self.rl_agent = RLAgent(state_dim=3, action_dim=4, seed=seed)
+
+    def benchmark_spec(self, attack_id: str) -> Dict[str, Any]:
+        """Fetch the benchmark spec dict for an attack ID."""
+        from attack.benchmark_attacks import BENCHMARK_ATTACKS
+        if attack_id not in BENCHMARK_ATTACKS:
+            raise KeyError(f"Unknown benchmark attack: {attack_id}")
+        return dict(BENCHMARK_ATTACKS[attack_id])
 
     # ------------------------------------------------------------------
     # Main compilation
@@ -324,28 +333,37 @@ class AttackCompiler:
             elif act_type == "create_account":
                 customer_id = action.get("customer_id")
                 balance = action.get("balance", 0.0)
-                opened_at = actual_step
-                acct = w.add_account(
-                    customer_id=customer_id,
-                    opened_at=opened_at,
-                    balance=balance,
-                )
-                action_log.append({
-                    "step": actual_step,
-                    "action": "create_account",
-                    "account_id": acct.account_id,
-                    "customer_id": customer_id,
-                })
+                count = action.get("count", 1)
+                account_ids = action.get("account_ids", [])
+                for i in range(count):
+                    opened_at = actual_step
+                    aid = account_ids[i] if i < len(account_ids) else None
+                    acct = w.add_account(
+                        customer_id=customer_id,
+                        account_id=aid,
+                        opened_at=opened_at,
+                        balance=balance,
+                    )
+                    action_log.append({
+                        "step": actual_step,
+                        "action": "create_account",
+                        "account_id": acct.account_id,
+                        "customer_id": customer_id,
+                    })
 
             elif act_type == "create_customer":
                 risk_state = action.get("risk_state", "normal")
                 kyc_tier = action.get("kyc_tier", "standard")
-                cust = w.add_customer(risk_state=risk_state, kyc_tier=kyc_tier)
-                action_log.append({
-                    "step": actual_step,
-                    "action": "create_customer",
-                    "customer_id": cust.customer_id,
-                })
+                count = action.get("count", 1)
+                customer_ids = action.get("customer_ids", [])
+                for i in range(count):
+                    cid = customer_ids[i] if i < len(customer_ids) else None
+                    cust = w.add_customer(customer_id=cid, risk_state=risk_state, kyc_tier=kyc_tier)
+                    action_log.append({
+                        "step": actual_step,
+                        "action": "create_customer",
+                        "customer_id": cust.customer_id,
+                    })
 
             else:
                 raise AttackExecutionError(
@@ -439,6 +457,18 @@ class AttackCompiler:
                 variant["resources"]["accounts"] += i * 2
 
             variant["variant_params"] = variant_meta
+            
+            # Incorporate RL Agent to mutate the generated spec
+            # State vector can be a simplistic mapping of resources
+            state_vec = [
+                variant["resources"].get("devices", 5),
+                variant["resources"].get("accounts", 8),
+                variant["amount"] / 100000.0
+            ]
+            action = self.rl_agent.select_action(state_vec)
+            variant = self.rl_agent.mutate_spec(variant, action)
+            variant["rl_action_taken"] = action
+
             variants.append(variant)
 
         return variants
@@ -579,9 +609,10 @@ class AttackCompiler:
             ]
         elif attack_type == "A2":
             # Synthetic identity: create identities → create accounts → transact among themselves
+            n_accs = spec.resources.get("accounts", 12)
             sequence = [
-                {"action": "create_customer", "count": 5},
-                {"action": "create_account", "count": 5},
+                {"action": "create_customer", "count": n_accs},
+                {"action": "create_account", "count": n_accs},
                 {"action": "typology", "typology": "bipartite"},
             ]
         elif attack_type == "A3":
@@ -770,11 +801,19 @@ class AttackCompiler:
                 wa["amount"] = round(cash_amount, 2)
 
             elif act_type == "create_customer":
-                wa["count"] = action_step.get("count", 5)
+                count = action_step.get("count", 5)
+                wa["count"] = count
+                wa["customer_ids"] = [f"C_{rng.randint(100000, 999999)}_{i}" for i in range(count)]
 
             elif act_type == "create_account":
+                count = action_step.get("count", 5)
+                wa["count"] = count
                 wa["customer_id"] = "AUTO"
                 wa["balance"] = rng.uniform(5000.0, 50000.0)
+                new_accts = [f"A_{rng.randint(100000, 999999)}_{i}" for i in range(count)]
+                wa["account_ids"] = new_accts
+                if attack_type == "A2":
+                    members = new_accts
 
             elif act_type == "typology":
                 typology_name = action_step["typology"]
@@ -791,11 +830,12 @@ class AttackCompiler:
                     kwargs["members"] = members
                     amount_modifier = action_step.get("amount_modifier", "")
                     if amount_modifier == "micro":
-                        # Card testing: sub-₹1 amounts
-                        kwargs["amount"] = 0.5
+                        # Card testing: sub-₹1 amounts with jitter
+                        kwargs["amount"] = round(rng.uniform(0.1, 0.9), 2)
                         kwargs["members"] = merchants if merchants else members
                     else:
-                        kwargs["amount"] = spec.amount
+                        # Normal fan-out with jitter
+                        kwargs["amount"] = round(spec.amount * rng.uniform(0.9, 1.1), 2)
 
                 elif typology_name == "scatter_gather":
                     kwargs["main_account"] = main_account

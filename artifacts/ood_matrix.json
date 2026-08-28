@@ -1,0 +1,270 @@
+{
+  "schema": "prometheus.ood_matrix.v1",
+  "generated_at": "2026-08-27T16:21:43",
+  "elapsed_seconds": 2.47,
+  "config": {
+    "schema": "prometheus.ood_matrix.v1",
+    "seed": 42,
+    "mechanisms": [
+      "rule_compiler",
+      "genetic",
+      "shadow_pgd",
+      "llm_strategist"
+    ],
+    "types": [
+      "A1",
+      "A3",
+      "A4",
+      "A6",
+      "A2",
+      "A5"
+    ],
+    "holdout_fingerprint": "292cc7f67639cea556948086f8303fb248249da14f45b3d4825cca8f0473a162",
+    "k_per_cell": 2,
+    "use_replay": true
+  },
+  "fingerprint": "d98de408f8ddeeeb",
+  "holdout_fingerprint": "292cc7f67639cea556948086f8303fb248249da14f45b3d4825cca8f0473a162",
+  "rates": {
+    "rule_compiler": {
+      "A1": 0.1667,
+      "A3": 0.6667,
+      "A4": 0.2857,
+      "A6": 0.0,
+      "A2": 0.0,
+      "A5": 0.2857
+    },
+    "genetic": {
+      "A1": 0.4,
+      "A3": 0.375,
+      "A4": 0.0,
+      "A6": 0.0,
+      "A2": 0.0,
+      "A5": 0.0625
+    },
+    "shadow_pgd": {
+      "A1": 0.0,
+      "A3": 0.0,
+      "A4": 0.0,
+      "A6": 0.0,
+      "A2": 0.0,
+      "A5": 0.0
+    },
+    "llm_strategist": {
+      "A1": 0.1667,
+      "A3": 0.3333,
+      "A4": 0.0,
+      "A6": 0.0,
+      "A2": 0.0,
+      "A5": 0.1818
+    }
+  },
+  "cells": {
+    "rule_compiler": {
+      "A1": {
+        "n_txs": 12,
+        "caught": 2,
+        "detection_rate": 0.1667,
+        "held_out": false
+      },
+      "A3": {
+        "n_txs": 6,
+        "caught": 4,
+        "detection_rate": 0.6667,
+        "held_out": false
+      },
+      "A4": {
+        "n_txs": 14,
+        "caught": 4,
+        "detection_rate": 0.2857,
+        "held_out": false
+      },
+      "A6": {
+        "n_txs": 6,
+        "caught": 0,
+        "detection_rate": 0.0,
+        "held_out": false
+      },
+      "A2": {
+        "n_txs": 12,
+        "caught": 0,
+        "detection_rate": 0.0,
+        "held_out": true
+      },
+      "A5": {
+        "n_txs": 14,
+        "caught": 4,
+        "detection_rate": 0.2857,
+        "held_out": true
+      }
+    },
+    "genetic": {
+      "A1": {
+        "n_txs": 10,
+        "caught": 4,
+        "detection_rate": 0.4,
+        "held_out": false
+      },
+      "A3": {
+        "n_txs": 16,
+        "caught": 6,
+        "detection_rate": 0.375,
+        "held_out": false
+      },
+      "A4": {
+        "n_txs": 8,
+        "caught": 0,
+        "detection_rate": 0.0,
+        "held_out": false
+      },
+      "A6": {
+        "n_txs": 13,
+        "caught": 0,
+        "detection_rate": 0.0,
+        "held_out": false
+      },
+      "A2": {
+        "n_txs": 4,
+        "caught": 0,
+        "detection_rate": 0.0,
+        "held_out": true
+      },
+      "A5": {
+        "n_txs": 32,
+        "caught": 2,
+        "detection_rate": 0.0625,
+        "held_out": true
+      }
+    },
+    "shadow_pgd": {
+      "A1": {
+        "n_txs": 2,
+        "caught": 0,
+        "detection_rate": 0.0,
+        "held_out": false
+      },
+      "A3": {
+        "n_txs": 2,
+        "caught": 0,
+        "detection_rate": 0.0,
+        "held_out": false
+      },
+      "A4": {
+        "n_txs": 6,
+        "caught": 0,
+        "detection_rate": 0.0,
+        "held_out": false
+      },
+      "A6": {
+        "n_txs": 4,
+        "caught": 0,
+        "detection_rate": 0.0,
+        "held_out": false
+      },
+      "A2": {
+        "n_txs": 5,
+        "caught": 0,
+        "detection_rate": 0.0,
+        "held_out": true
+      },
+      "A5": {
+        "n_txs": 6,
+        "caught": 0,
+        "detection_rate": 0.0,
+        "held_out": true
+      }
+    },
+    "llm_strategist": {
+      "A1": {
+        "n_txs": 12,
+        "caught": 2,
+        "detection_rate": 0.1667,
+        "held_out": false
+      },
+      "A3": {
+        "n_txs": 6,
+        "caught": 2,
+        "detection_rate": 0.3333,
+        "held_out": false
+      },
+      "A4": {
+        "n_txs": 21,
+        "caught": 0,
+        "detection_rate": 0.0,
+        "held_out": false
+      },
+      "A6": {
+        "n_txs": 20,
+        "caught": 0,
+        "detection_rate": 0.0,
+        "held_out": false
+      },
+      "A2": {
+        "n_txs": 10,
+        "caught": 0,
+        "detection_rate": 0.0,
+        "held_out": true
+      },
+      "A5": {
+        "n_txs": 22,
+        "caught": 4,
+        "detection_rate": 0.1818,
+        "held_out": true
+      }
+    }
+  },
+  "mechanism_registry_snapshot": [
+    "genetic",
+    "llm_strategist",
+    "rule_compiler",
+    "shadow_pgd"
+  ],
+  "note": "cell = detection_rate of victim over mechanism-specific fresh attempts; A2/A5 columns are held-out evaluation only and never appear in any training pool",
+  "exploitability": {
+    "worst_case_detection_per_type": {
+      "A1": 0.0,
+      "A2": 0.0,
+      "A3": 0.0,
+      "A4": 0.0,
+      "A5": 0.0,
+      "A6": 0.0
+    },
+    "strongest_attack_per_type": {
+      "A1": "shadow_pgd",
+      "A2": "rule_compiler",
+      "A3": "shadow_pgd",
+      "A4": "genetic",
+      "A5": "shadow_pgd",
+      "A6": "rule_compiler"
+    },
+    "overall_worst_case_detection": 0.0,
+    "overall_exploitability": 1.0,
+    "mean_detection": 0.1218,
+    "note": "exploitability is defined on the WORST case (law 8): averages hide the hole an attacker would find"
+  },
+  "runtime_seconds": 8.5,
+  "platform": {
+    "python": "3.13.11",
+    "os": "Windows-11-10.0.26300-SP0",
+    "cpu_only": true
+  },
+  "rl_stretch": {
+    "episodes_run": 50,
+    "rl_best_mean_evasion": 0.0,
+    "heuristic_baseline": 0.0,
+    "shipped": true,
+    "reason": "criterion met",
+    "pre_registered_criterion": {
+      "min_episodes": 50,
+      "ship_condition": "best_mean_evasion >= heuristic_baseline - 0.05",
+      "fallback_outcome": "negative_result_reported",
+      "query_budget_shared": true
+    }
+  },
+  "llm_strategist_origins": [
+    "fallback",
+    "fallback",
+    "fallback",
+    "fallback"
+  ]
+}

@@ -31,6 +31,10 @@ def _generate_ip_blocks(rng: random.Random, count: int) -> List[str]:
     return list(blocks)
 
 
+def rng_uniform_salary(rng: random.Random, lo: float, hi: float) -> float:
+    return rng.uniform(lo, hi)
+
+
 # ---------------------------------------------------------------------------
 # Financial Digital Twin
 # ---------------------------------------------------------------------------
@@ -58,6 +62,13 @@ class FinancialDigitalTwin:
         self.num_devices = num_devices
         self.num_ip_blocks = num_ip_blocks
         self.num_steps = num_steps
+
+        # Recurring-salary realism (P7 behavioral fidelity): a fixed subset
+        # of employed accounts receives EXT_SALARY deposits on a ~30-step
+        # cadence; state lives here so runs stay deterministic.
+        self.salary_recipients: List[str] = []
+        self.salary_interval: int = 30
+        self.salary_amount_range = (20000.0, 80000.0)
 
         # Bootstrap
         self._bootstrap()
@@ -106,8 +117,9 @@ class FinancialDigitalTwin:
         # Initial salary deposits from EXT_SALARY to bootstrap balances
         # Give ~10% of accounts an initial salary deposit
         all_accounts = list(world.accounts.keys())
-        for acc_id in rng.sample(all_accounts, max(1, len(all_accounts) // 10)):
-            salary_amt = round(rng.uniform(20000.0, 80000.0), 2)
+        employed = rng.sample(all_accounts, max(1, len(all_accounts) // 10))
+        for acc_id in employed:
+            salary_amt = round(rng.uniform(*self.salary_amount_range), 2)
             world.log_transaction(
                 from_id="EXT_SALARY",
                 to_id=acc_id,
@@ -119,6 +131,8 @@ class FinancialDigitalTwin:
                 ip=None,
                 is_fraud=False,
             )
+        # the SAME employees receive recurring deposits at a fixed cadence
+        self.salary_recipients = list(employed)
 
     # ------------------------------------------------------------------
     # Step execution
@@ -132,6 +146,19 @@ class FinancialDigitalTwin:
         """
         self.world.current_step += 1
         step_txs: List[Dict] = []
+
+        # Recurring salary deposits (same employees, fixed cadence)
+        if self.salary_recipients and \
+                self.world.current_step % self.salary_interval == 0:
+            for acc_id in self.salary_recipients:
+                amt = round(rng_uniform_salary(self.rng,
+                                               *self.salary_amount_range), 2)
+                tx = self.world.log_transaction(
+                    from_id="EXT_SALARY", to_id=acc_id, amount=amt,
+                    step=self.world.current_step, currency="INR",
+                    category="salary",
+                )
+                step_txs.append(tx)
 
         # Process each account
         for account_id in list(self.world.accounts.keys()):

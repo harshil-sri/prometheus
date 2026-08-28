@@ -2,55 +2,66 @@
 gnn_model.py — GNN-based fraud detection for Project Prometheus.
 
 Node classification over an account+merchant graph using a 2-layer
-GraphSAGE network. CPU-only (no CUDA).
+edge-aware transformer-style network (TransformerConv with edge_dim), so the
+computed per-edge attributes [amount, hour, repeat] are genuinely CONSUMED by
+message passing (audit finding #7 — the previous GraphSAGE wiring computed
+edge_attr but had no parameter to receive it). CPU-only (no CUDA).
 """
 
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch_geometric.nn import SAGEConv
+from torch_geometric.nn import TransformerConv
 
 __all__ = ["FraudGNN", "GNNFraudDetector"]
 
 
 class FraudGNN(torch.nn.Module):
-    """2-layer GraphSAGE network for binary node classification."""
+    """2-layer edge-aware network for binary node classification."""
+
+    #: dim of build_graph_data edge_attr: [scaled_amount, normalized_hour, repeat]
+    EDGE_ATTR_DIM = 3
 
     def __init__(self, in_channels=16, hidden_channels=64, out_channels=2,
                  dropout=0.5):
         super().__init__()
         self.dropout = dropout
-        self.conv1 = SAGEConv(in_channels, hidden_channels)
-        self.conv2 = SAGEConv(hidden_channels, out_channels)
+        # heads=1 keeps output dims == channels (no concat surprises)
+        self.conv1 = TransformerConv(in_channels, hidden_channels,
+                                     edge_dim=self.EDGE_ATTR_DIM, heads=1)
+        self.conv2 = TransformerConv(hidden_channels, out_channels,
+                                     edge_dim=self.EDGE_ATTR_DIM, heads=1)
 
-    def forward(self, x, edge_index, edge_weight=None):
+    def forward(self, x, edge_index, edge_attr=None):
         """
         Args:
-            x:           [num_nodes, in_channels] node feature matrix.
-            edge_index:  [2, num_edges] graph connectivity.
-            edge_weight: optional [num_edges] edge weights.
+            x:         [num_nodes, in_channels] node feature matrix.
+            edge_index:[2, num_edges] graph connectivity.
+            edge_attr: optional [num_edges, EDGE_ATTR_DIM] edge features.
 
         Returns:
             [num_nodes, out_channels] raw logits per node.
         """
         num_nodes = x.size(0)
 
-        # --- Isolated-node handling: append explicit self-loops so every
-        # node participates in message passing with normalized weight ---
+        # --- Isolated-node handling: explicit self-loops so every node
+        # participates in message passing ---
         loop_index = torch.arange(num_nodes, dtype=torch.long,
                                   device=x.device)
         self_loops = torch.stack([loop_index, loop_index], dim=0)
         edge_index = torch.cat([edge_index, self_loops], dim=1)
 
-        if edge_weight is not None:
-            loop_weights = torch.ones(num_nodes, dtype=edge_weight.dtype,
-                                      device=edge_weight.device)
-            edge_weight = torch.cat([edge_weight, loop_weights], dim=0)
+        if edge_attr is not None:
+            # self-loops carry neutral (zero) attributes
+            loop_attrs = torch.zeros(
+                (num_nodes, edge_attr.size(1)),
+                dtype=edge_attr.dtype, device=edge_attr.device)
+            edge_attr = torch.cat([edge_attr, loop_attrs], dim=0)
 
-        h = self.conv1(x, edge_index, edge_weight)
+        h = self.conv1(x, edge_index, edge_attr)
         h = F.relu(h)
         h = F.dropout(h, p=self.dropout, training=self.training)
-        logits = self.conv2(h, edge_index, edge_weight)
+        logits = self.conv2(h, edge_index, edge_attr)
         return logits
 
 
@@ -73,15 +84,18 @@ class GNNFraudDetector:
         x = data.x.to(self.device).float()
         edge_index = data.edge_index.to(self.device).long()
 
-        edge_weight = getattr(data, 'edge_weight', None)
-        if edge_weight is not None:
-            edge_weight = edge_weight.to(self.device).float()
+        edge_attr = getattr(data, 'edge_attr', None)
+        if edge_attr is not None and edge_attr.numel() > 0 \
+                and edge_attr.dim() == 2:
+            edge_attr = edge_attr.to(self.device).float()
+        else:
+            edge_attr = None
 
         y = getattr(data, 'y', None)
         if y is not None:
             y = y.to(self.device).long()
 
-        return x, edge_index, edge_weight, y
+        return x, edge_index, edge_attr, y
 
     @staticmethod
     def _class_weights(y):

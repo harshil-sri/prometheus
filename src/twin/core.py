@@ -259,11 +259,17 @@ class WorldState:
                         ip: Optional[str] = None,
                         is_fraud: bool = False,
                         attack_id: Optional[str] = None,
-                        trajectory_id: Optional[str] = None) -> Dict[str, Any]:
+                        trajectory_id: Optional[str] = None,
+                        mechanism: Optional[str] = None) -> Dict[str, Any]:
         """Log a transaction and return a plain dict.
 
         IMPORTANT: The returned dict uses key names "from" and "to" (not from_id/to_id)
         matching the PRD contract for downstream consumers.
+
+        `mechanism` tags the GENERATION MECHANISM that produced the row
+        ("rule_compiler" today; shadow_pgd / genetic / llm_strategist as those
+        phases land). None means untagged; blue.splits.mechanism_of_tx applies
+        the default attribution. This key powers the axis-2 holdout checks.
         """
         step = step if step is not None else self.current_step
         tx_id = self.next_tx_id()
@@ -282,6 +288,7 @@ class WorldState:
             "is_fraud": is_fraud,
             "attack_id": attack_id,
             "trajectory_id": trajectory_id,
+            "mechanism": mechanism,
         }
         self.transactions.append(tx)
 
@@ -334,6 +341,38 @@ class WorldState:
         }
         self.trajectories.append(traj)
         return traj
+
+    # ------------------------------------------------------------------
+    # Supply / flow accounting (Phase 1 integrity helpers)
+    # ------------------------------------------------------------------
+
+    def internal_supply(self) -> float:
+        """Total balance across internal accounts.
+
+        Conservation invariant: any sequence of transfers between internal
+        accounts (all eight typologies are p2p between accounts) leaves this
+        value unchanged to float epsilon. Only EXT_* endpoints can move it.
+        """
+        return float(sum(a.balance for a in self.accounts.values()))
+
+    def flow_summary(self, tx_ids) -> Dict[str, Dict[str, float]]:
+        """Aggregate in/out/net flow per entity over a set of transactions.
+
+        Useful for asserting typology economics (e.g. cycle initiator recovers
+        principal*(1-margin)^n) without re-parsing raw transactions.
+        """
+        wanted = set(tx_ids)
+        agg: Dict[str, Dict[str, float]] = {}
+        for t in self.transactions:
+            if t["tx_id"] not in wanted:
+                continue
+            amt = t["amount"]
+            for eid, direction in ((t["from"], "out"), (t["to"], "in")):
+                entry = agg.setdefault(eid, {"in": 0.0, "out": 0.0})
+                entry[direction] += amt
+        for entry in agg.values():
+            entry["net"] = entry["in"] - entry["out"]
+        return agg
 
     # ------------------------------------------------------------------
     # Serialisation

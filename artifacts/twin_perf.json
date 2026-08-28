@@ -1,0 +1,20 @@
+{
+  "num_accounts": 2000,
+  "num_merchants": 200,
+  "num_devices": 800,
+  "num_ip_blocks": 200,
+  "num_steps": 200,
+  "seed": 42,
+  "tx_count": 49800,
+  "fraud_tx": 0,
+  "bootstrap_seconds": 0.085,
+  "run_seconds": 3.187,
+  "elapsed_seconds": 3.272,
+  "seconds_per_1k_steps_x_accounts": 0.0082,
+  "budget_seconds": 30.0,
+  "passed": true,
+  "python": "3.13.11",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "cpu_only": true,
+  "generated_at": "2026-08-27T08:25:17"
+}
