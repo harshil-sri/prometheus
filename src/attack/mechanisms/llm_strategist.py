@@ -64,6 +64,8 @@ class LLMStrategist:
         base = os.environ.get("PROMETHEUS_LLM_BASE_URL", "").strip()
         model = os.environ.get("PROMETHEUS_LLM_MODEL", "").strip()
         key = os.environ.get("PROMETHEUS_LLM_API_KEY", "").strip()
+        if key.startswith("gsk-"):
+            key = "gsk_" + key[4:]
         if base and model:               # key may be empty on local Ollama
             return {"base_url": base.rstrip("/"), "model": model,
                     "api_key": key}

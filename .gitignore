@@ -17,9 +17,8 @@ build/
 .idea/
 .vscode/
 
-# Secrets: ignore every env file EXCEPT the tracked template
-.env
-.env.*
+# Secrets: allow .env and .env.example
+!.env
 !.env.example
 
 # Local artifacts (scratch only — artifacts/ metric JSONs are committed evidence)
