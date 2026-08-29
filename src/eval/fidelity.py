@@ -328,10 +328,19 @@ def adversarial_layer(victim_ensemble, real_normal: np.ndarray,
 def build_fidelity_report(statistical: Dict[str, Any],
                           behavioral: Dict[str, Any],
                           adversarial: Dict[str, Any],
-                          meta: Dict[str, Any]) -> Dict[str, Any]:
-    """Ship the three layers plus declared pass flags — nothing composed."""
-    return {
-        "schema": "prometheus.fidelity_report.v1",
+                          meta: Dict[str, Any],
+                          critics: Optional[Dict[str, Any]] = None,
+                          ) -> Dict[str, Any]:
+    """Ship the three layers plus declared pass flags — nothing composed.
+
+    `critics` (Phase 6): per-critique-generator L1+L3 bundles keyed by generator
+    name (e.g. {"ctgan": {...}, "diffusion": {...}}). When present, the schema
+    bumps ADDITIVELY to v2 and the `critics` block is emitted alongside the
+    unchanged v1 `layers` (the CTGAN-era representation kept for back-compat).
+    """
+    report = {
+        "schema": ("prometheus.fidelity_report.v2" if critics
+                   else "prometheus.fidelity_report.v1"),
         "layers": {
             "statistical": statistical,
             "behavioral": behavioral,
@@ -343,5 +352,8 @@ def build_fidelity_report(statistical: Dict[str, Any],
         },
         "all_statistical_flags_passed":
             bool(all(statistical["pass_flags"].values())),
-        "meta": meta,
     }
+    if critics is not None:
+        report["critics"] = critics
+    report["meta"] = meta
+    return report

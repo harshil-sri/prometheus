@@ -1,103 +1,103 @@
 {
-  "schema": "prometheus.fidelity_report.v1",
+  "schema": "prometheus.fidelity_report.v2",
   "layers": {
     "statistical": {
       "per_column_numeric": {
         "amount": {
-          "wasserstein": 1022.237514,
-          "wasserstein_over_std": 0.0809,
-          "ks_stat": 0.3619
+          "wasserstein": 2505.076717,
+          "wasserstein_over_std": 0.2964,
+          "ks_stat": 0.1219
         },
         "log_amount": {
-          "wasserstein": 0.95226,
-          "wasserstein_over_std": 0.6125,
-          "ks_stat": 0.2878
+          "wasserstein": 0.342023,
+          "wasserstein_over_std": 0.2292,
+          "ks_stat": 0.1156
         },
         "velocity_10": {
-          "wasserstein": 0.18733,
-          "wasserstein_over_std": 0.1737,
-          "ks_stat": 0.0733
+          "wasserstein": 0.101457,
+          "wasserstein_over_std": 0.0956,
+          "ks_stat": 0.0386
         },
         "velocity_50": {
-          "wasserstein": 3.383472,
-          "wasserstein_over_std": 0.639,
-          "ks_stat": 0.2671
+          "wasserstein": 10.387947,
+          "wasserstein_over_std": 0.1061,
+          "ks_stat": 0.1501
         },
         "sender_tx_count": {
-          "wasserstein": 1.931954,
-          "wasserstein_over_std": 0.2671,
-          "ks_stat": 0.0685
+          "wasserstein": 37.29063,
+          "wasserstein_over_std": 0.2369,
+          "ks_stat": 0.1412
         },
         "sender_avg_amount": {
-          "wasserstein": 1991.169419,
-          "wasserstein_over_std": 0.2045,
-          "ks_stat": 0.111
+          "wasserstein": 1279.372621,
+          "wasserstein_over_std": 0.2119,
+          "ks_stat": 0.1697
         },
         "time_since_last_tx": {
-          "wasserstein": 1.540136,
-          "wasserstein_over_std": 0.2342,
-          "ks_stat": 0.211
+          "wasserstein": 1.04003,
+          "wasserstein_over_std": 0.097,
+          "ks_stat": 0.1276
         },
         "device_account_count": {
-          "wasserstein": 0.050046,
-          "wasserstein_over_std": 0.2653,
-          "ks_stat": 0.05
+          "wasserstein": 0.049099,
+          "wasserstein_over_std": 0.1108,
+          "ks_stat": 0.0491
         },
         "ip_account_count": {
-          "wasserstein": 9.864237,
-          "wasserstein_over_std": 0.4568,
-          "ks_stat": 0.2135
+          "wasserstein": 6.875428,
+          "wasserstein_over_std": 0.2822,
+          "ks_stat": 0.1852
         },
         "hour_of_day": {
-          "wasserstein": 0.884042,
-          "wasserstein_over_std": 0.1338,
-          "ks_stat": 0.0799
+          "wasserstein": 2.030198,
+          "wasserstein_over_std": 0.3022,
+          "ks_stat": 0.17
         }
       },
       "per_column_categorical": {
         "merchant_category": {
-          "tv_distance": 0.0729
+          "tv_distance": 0.0545
         },
         "is_p2p": {
-          "tv_distance": 0.0319
+          "tv_distance": 0.04
         },
         "is_night": {
-          "tv_distance": 0.059
+          "tv_distance": 0.0382
         },
         "currency_code": {
           "tv_distance": 0.0
         }
       },
-      "wasserstein_ratio_median": 0.2497,
-      "wasserstein_ratio_max": 0.639,
+      "wasserstein_ratio_median": 0.2205,
+      "wasserstein_ratio_max": 0.3022,
       "worst_columns_by_w_ratio": [
         [
-          "velocity_50",
+          "hour_of_day",
           {
-            "wasserstein": 3.383472,
-            "wasserstein_over_std": 0.639,
-            "ks_stat": 0.2671
+            "wasserstein": 2.030198,
+            "wasserstein_over_std": 0.3022,
+            "ks_stat": 0.17
           }
         ],
         [
-          "log_amount",
+          "amount",
           {
-            "wasserstein": 0.95226,
-            "wasserstein_over_std": 0.6125,
-            "ks_stat": 0.2878
+            "wasserstein": 2505.076717,
+            "wasserstein_over_std": 0.2964,
+            "ks_stat": 0.1219
           }
         ],
         [
           "ip_account_count",
           {
-            "wasserstein": 9.864237,
-            "wasserstein_over_std": 0.4568,
-            "ks_stat": 0.2135
+            "wasserstein": 6.875428,
+            "wasserstein_over_std": 0.2822,
+            "ks_stat": 0.1852
           }
         ]
       ],
-      "ks_stat_median": 0.161,
-      "tv_median": 0.0454,
+      "ks_stat_median": 0.1344,
+      "tv_median": 0.0391,
       "pass_flags": {
         "wasserstein_ok": true,
         "wasserstein_tail_ok": true,
@@ -107,18 +107,18 @@
     "behavioral": {
       "graph": {
         "nodes": 312,
-        "edges": 1808,
-        "avg_clustering": 0.0532,
-        "degree_p50": 9.0,
+        "edges": 2043,
+        "avg_clustering": 0.1214,
+        "degree_p50": 10.0,
         "degree_p95": 29.0,
-        "triangle_count_approx": 306
+        "triangle_count_approx": 746
       },
       "income_cycles": {
         "expected_interval": 30,
-        "salary_recipients_seen": 26,
-        "declared_recipients": 26,
-        "recipients_paid_more_than_once": 26,
-        "recipients_on_expected_cadence": 26,
+        "salary_recipients_seen": 260,
+        "declared_recipients": 260,
+        "recipients_paid_more_than_once": 260,
+        "recipients_on_expected_cadence": 260,
         "on_cadence_ratio": 1.0
       },
       "iat_overlap": {
@@ -137,8 +137,8 @@
     },
     "adversarial": {
       "critic_trap": {
-        "raw_auc_before_support_projection": 0.9996,
-        "auc": 0.9998,
+        "raw_auc_before_support_projection": 1.0,
+        "auc": 0.9999,
         "survived_band": false,
         "band": [
           0.45,
@@ -148,7 +148,7 @@
         "interpretation": "judged on support-projected synthetics (counters/flags snapped to observed supports); raw AUC kept for transparency"
       },
       "manifold_transfer": {
-        "spearman_score_correlation": 0.5846,
+        "spearman_score_correlation": 0.1742,
         "held_out_real_rows": 400
       }
     }
@@ -164,19 +164,293 @@
     ]
   },
   "all_statistical_flags_passed": true,
+  "critics": {
+    "ctgan": {
+      "generator": "sdv CTGANSynthesizer (epochs=60)",
+      "statistical": {
+        "per_column_numeric": {
+          "amount": {
+            "wasserstein": 2505.076717,
+            "wasserstein_over_std": 0.2964,
+            "ks_stat": 0.1219
+          },
+          "log_amount": {
+            "wasserstein": 0.342023,
+            "wasserstein_over_std": 0.2292,
+            "ks_stat": 0.1156
+          },
+          "velocity_10": {
+            "wasserstein": 0.101457,
+            "wasserstein_over_std": 0.0956,
+            "ks_stat": 0.0386
+          },
+          "velocity_50": {
+            "wasserstein": 10.387947,
+            "wasserstein_over_std": 0.1061,
+            "ks_stat": 0.1501
+          },
+          "sender_tx_count": {
+            "wasserstein": 37.29063,
+            "wasserstein_over_std": 0.2369,
+            "ks_stat": 0.1412
+          },
+          "sender_avg_amount": {
+            "wasserstein": 1279.372621,
+            "wasserstein_over_std": 0.2119,
+            "ks_stat": 0.1697
+          },
+          "time_since_last_tx": {
+            "wasserstein": 1.04003,
+            "wasserstein_over_std": 0.097,
+            "ks_stat": 0.1276
+          },
+          "device_account_count": {
+            "wasserstein": 0.049099,
+            "wasserstein_over_std": 0.1108,
+            "ks_stat": 0.0491
+          },
+          "ip_account_count": {
+            "wasserstein": 6.875428,
+            "wasserstein_over_std": 0.2822,
+            "ks_stat": 0.1852
+          },
+          "hour_of_day": {
+            "wasserstein": 2.030198,
+            "wasserstein_over_std": 0.3022,
+            "ks_stat": 0.17
+          }
+        },
+        "per_column_categorical": {
+          "merchant_category": {
+            "tv_distance": 0.0545
+          },
+          "is_p2p": {
+            "tv_distance": 0.04
+          },
+          "is_night": {
+            "tv_distance": 0.0382
+          },
+          "currency_code": {
+            "tv_distance": 0.0
+          }
+        },
+        "wasserstein_ratio_median": 0.2205,
+        "wasserstein_ratio_max": 0.3022,
+        "worst_columns_by_w_ratio": [
+          [
+            "hour_of_day",
+            {
+              "wasserstein": 2.030198,
+              "wasserstein_over_std": 0.3022,
+              "ks_stat": 0.17
+            }
+          ],
+          [
+            "amount",
+            {
+              "wasserstein": 2505.076717,
+              "wasserstein_over_std": 0.2964,
+              "ks_stat": 0.1219
+            }
+          ],
+          [
+            "ip_account_count",
+            {
+              "wasserstein": 6.875428,
+              "wasserstein_over_std": 0.2822,
+              "ks_stat": 0.1852
+            }
+          ]
+        ],
+        "ks_stat_median": 0.1344,
+        "tv_median": 0.0391,
+        "pass_flags": {
+          "wasserstein_ok": true,
+          "wasserstein_tail_ok": true,
+          "ks_ok": true
+        }
+      },
+      "adversarial": {
+        "critic_trap": {
+          "raw_auc_before_support_projection": 1.0,
+          "auc": 0.9999,
+          "survived_band": false,
+          "band": [
+            0.45,
+            0.72
+          ],
+          "conclusion": "declared band NOT met (1.000 vs [0.45, 0.72]); the critique generator leaks artifacts to trees at the 20-dim joint level \u2014 reported as a measured limitation, never padded",
+          "interpretation": "judged on support-projected synthetics (counters/flags snapped to observed supports); raw AUC kept for transparency"
+        },
+        "manifold_transfer": {
+          "spearman_score_correlation": 0.1742,
+          "held_out_real_rows": 400
+        }
+      }
+    },
+    "diffusion": {
+      "generator": "TabDiffusionCritic \u2014 Gaussian DDPM, MLP denoiser + sinusoidal time embeddings (EmDT-aligned, arXiv:2603.13566; scaled-down)",
+      "statistical": {
+        "per_column_numeric": {
+          "amount": {
+            "wasserstein": 1868.516381,
+            "wasserstein_over_std": 0.2211,
+            "ks_stat": 0.0894
+          },
+          "log_amount": {
+            "wasserstein": 0.290588,
+            "wasserstein_over_std": 0.1947,
+            "ks_stat": 0.0893
+          },
+          "velocity_10": {
+            "wasserstein": 0.1939,
+            "wasserstein_over_std": 0.1828,
+            "ks_stat": 0.2929
+          },
+          "velocity_50": {
+            "wasserstein": 19.282023,
+            "wasserstein_over_std": 0.1969,
+            "ks_stat": 0.268
+          },
+          "sender_tx_count": {
+            "wasserstein": 36.499835,
+            "wasserstein_over_std": 0.2319,
+            "ks_stat": 0.3236
+          },
+          "sender_avg_amount": {
+            "wasserstein": 828.666628,
+            "wasserstein_over_std": 0.1372,
+            "ks_stat": 0.1333
+          },
+          "time_since_last_tx": {
+            "wasserstein": 1.737184,
+            "wasserstein_over_std": 0.162,
+            "ks_stat": 0.1445
+          },
+          "device_account_count": {
+            "wasserstein": 0.108255,
+            "wasserstein_over_std": 0.2443,
+            "ks_stat": 0.549
+          },
+          "ip_account_count": {
+            "wasserstein": 3.802539,
+            "wasserstein_over_std": 0.1561,
+            "ks_stat": 0.2282
+          },
+          "hour_of_day": {
+            "wasserstein": 0.784983,
+            "wasserstein_over_std": 0.1169,
+            "ks_stat": 0.0902
+          }
+        },
+        "per_column_categorical": {
+          "merchant_category": {
+            "tv_distance": 1.0
+          },
+          "is_p2p": {
+            "tv_distance": 1.0
+          },
+          "is_night": {
+            "tv_distance": 1.0
+          },
+          "currency_code": {
+            "tv_distance": 1.0
+          }
+        },
+        "wasserstein_ratio_median": 0.1888,
+        "wasserstein_ratio_max": 0.2443,
+        "worst_columns_by_w_ratio": [
+          [
+            "device_account_count",
+            {
+              "wasserstein": 0.108255,
+              "wasserstein_over_std": 0.2443,
+              "ks_stat": 0.549
+            }
+          ],
+          [
+            "sender_tx_count",
+            {
+              "wasserstein": 36.499835,
+              "wasserstein_over_std": 0.2319,
+              "ks_stat": 0.3236
+            }
+          ],
+          [
+            "amount",
+            {
+              "wasserstein": 1868.516381,
+              "wasserstein_over_std": 0.2211,
+              "ks_stat": 0.0894
+            }
+          ]
+        ],
+        "ks_stat_median": 0.1864,
+        "tv_median": 1.0,
+        "pass_flags": {
+          "wasserstein_ok": true,
+          "wasserstein_tail_ok": true,
+          "ks_ok": true
+        }
+      },
+      "adversarial": {
+        "critic_trap": {
+          "raw_auc_before_support_projection": 1.0,
+          "auc": 1.0,
+          "survived_band": false,
+          "band": [
+            0.45,
+            0.72
+          ],
+          "conclusion": "declared band NOT met (1.000 vs [0.45, 0.72]); the critique generator leaks artifacts to trees at the 20-dim joint level \u2014 reported as a measured limitation, never padded",
+          "interpretation": "judged on support-projected synthetics (counters/flags snapped to observed supports); raw AUC kept for transparency"
+        },
+        "manifold_transfer": {
+          "spearman_score_correlation": 0.8357,
+          "held_out_real_rows": 400
+        }
+      },
+      "diagnostics": {
+        "generator": "TabDiffusionCritic (Gaussian DDPM, MLP denoiser, sinusoidal time embeddings)",
+        "config": {
+          "T": 100,
+          "hidden": 256,
+          "beta_min": 0.0001,
+          "beta_max": 0.02,
+          "emb_dim": 64
+        },
+        "seed": 42,
+        "train_rows": 2921,
+        "feature_dim": 20,
+        "final_train_loss_mse": 0.251884,
+        "epochs": 300
+      }
+    }
+  },
   "meta": {
     "seed": 42,
-    "n_real_normals": 2219,
+    "n_real_normals": 2921,
     "n_synth_normals": 4000,
     "features": 20,
-    "ctgan_epochs": 200,
-    "runtime_seconds": 153.53,
+    "critic_rows": 2921,
+    "ctgan_epochs": 60,
+    "runtime_seconds": 100.9,
     "platform": {
-      "python": "3.13.11",
-      "os": "Windows-11-10.0.26300-SP0",
+      "python": "3.14.4",
+      "os": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
       "cpu_only": true
     },
-    "critique_generator": "sdv CTGANSynthesizer (epochs=200)"
+    "critique_generator": "sdv CTGANSynthesizer (epochs=60)",
+    "citations": [
+      "Kuo, E.-Y. & Motsch, S. (2026). EmDT: Embedding Diffusion Transformer for Tabular Data Generation in Fraud Detection. arXiv:2603.13566.",
+      "Sajja, B. (2026). Synthetic Tabular Generators Fail to Preserve Behavioral Fraud Patterns: A Benchmark on Temporal, Velocity, and Multi-Account Signals. arXiv:2604.13125."
+    ],
+    "critics_ran": [
+      "ctgan",
+      "diffusion"
+    ],
+    "diffusion_epochs": 300,
+    "diffusion_timesteps": 100
   },
-  "fingerprint": "16fa2d54079db327"
+  "fingerprint": "d525ccbb6b7364d3"
 }

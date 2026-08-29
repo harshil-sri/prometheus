@@ -354,11 +354,42 @@ Fidelity claim holds against a diffusion critic, not just CTGAN.
 2. Feed both CTGAN and diffusion critics into L1/L3; report both in schema (additive schema bump to v2).
 3. Docs: copy the exact citations (arXiv 2603.13566 EmDT; arXiv 2604.13125 fraud-pattern benchmark).
 
+### Implementation notes
+1. ✅ `src/eval/diffusion_tab.py` — `TabDiffusionCritic`: a small Gaussian DDPM (linear betas 1e-4→0.02,
+   Ho et al. '20) with a single MLP denoiser + sinusoidal time embeddings — architeçturally aligned with
+   EmDT (arXiv:2603.13566) but deliberately scaled down (no per-cluster UMAP, no transformer) because it
+   is a CRITIQUE generator here, not an oversampler. CPU-friendly (hidden 256, T=100, ~300 epochs on
+   4000×20 ≈ seconds); deterministic per seed on a single box (torch+numpy re-seeded in `__init__`,
+   single thread, seeded permutation/noise generators ⇒ same fit ⇒ byte-identical synthetic rows,
+   gated in-suite). Internal per-column standardization (sanitizes Inf velocity features); reverse
+   process uses the clean `x_{t-1} = (x_t − β_t/√(1−ᾱ)·ε_θ)/√α + σz` update.
+2. ✅ `src/eval/fidelity.py` — `build_fidelity_report(..., critics=None)`: additive schema bump. With
+   `critics` → `prometheus.fidelity_report.v2` + a `critics` block ({ctgan, diffusion}, each = generator
+   description + L1 statistical + L3 adversarial, diffusion also carries its train diagnostics); without
+   → v1 unchanged. The v1 `layers` representation (CTGAN-era) is kept verbatim for back-compat.
+3. ✅ `scripts/fidelity_eval.py` — the runner now trains BOTH generators on the same `--critic-rows`
+   (default 4000) real-normal slice: sdv CTGAN (unchanged) AND `TabDiffusionCritic`
+   (`--diffusion-epochs/--timesteps/--batch`); both feed the same `statistical_layer` + `adversarial_layer`
+   (same L3 band adjudication [0.45, 0.72]). New `--skip-diffusion` preserves the v1 single-critic path.
+   Fingerprint payload extended with sorted critic names; per-critic results printed. Citations carried
+   VERBATIM in `meta["citations"]` (arXiv:2603.13566 EmDT — Kuo & Motsch; arXiv:2604.13125 behavioral
+   fidelity benchmark — Sajja).
+
 ### Tests
-- Critic runs on small config deterministically; artifact carries both critic sections.
+- ✅ `tests/test_fidelity_diffusion.py` (7 new): same-seed fits ⇒ byte-identical synthetic output;
+  different seeds ⇒ different output; `sample()` before `fit()` raises; diffusion output survives
+  `statistical_layer` (finite, bounded w-ratio) and `adversarial_layer` (band-consistent verdicts);
+  v2 report shape (both critics present, v1 `layers` additive) + v1 back-compat without critics.
+- ✅ `tests/test_fidelity.py` artifact contract updated: accepts v1 OR v2; when v2, asserts both
+  `critics` sections present and `meta["critics_ran"] == ["ctgan", "diffusion"]`.
 
 ### Gate
-Full suite green + `fidelity` artifact containing both critics.
+✅ Full suite green (216 passed, +7 new diffusion tests) + `artifacts/fidelity_report.json`
+regenerated to schema v2 carrying BOTH critics:
+CTGAN  → L1 w-ratio median 0.2205 / KS 0.1344 · L3 trap AUC 0.9999 (band not met, honest) · manifold ρ 0.1742
+Diffusion → L1 w-ratio median 0.1888 / KS 0.1864 · L3 trap AUC 1.0 (band not met, honest) · manifold ρ 0.8357
+Both critics survive Layer-1 statistical (pass=True) and fail L3 with declared bands intact; the
+diffusion critic's manifold-transfer ρ is markedly higher — an observable, not a tuned number.
 
 ---
 
