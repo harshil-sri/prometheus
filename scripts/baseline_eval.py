@@ -19,7 +19,11 @@ Produces artifacts/baseline_eval.json:
     attack type produces fewer than `--min-eval-fraud-per-type` fraud rows
     in the eval slice — silently absent types (the historical A5 collapse)
     can no longer pass as a clean evaluation. Each type is executed
-    `--eval-repeats` times for statistically useful per-type n.
+    `--eval-repeats` times for statistically useful per-type n. Funding is
+    RING-FENCED per type (updates.md 2.3): the funded upper tail is
+    partitioned into disjoint, deterministic pools sized to each type's
+    principal, priciest first, and per-tier pool funding is reported in the
+    artifact's `funding` block so depletion is loud, not silent.
 
 Usage (repo root):
     python scripts/baseline_eval.py [--seed 42] [--accounts 1200] ...
@@ -48,6 +52,7 @@ import numpy as np  # noqa: E402
 
 from twin.twin import FinancialDigitalTwin                          # noqa: E402
 from attack.compiler import AttackCompiler                          # noqa: E402
+from attack.funding import reserve_funding_pools, SAFETY_DEFAULT     # noqa: E402
 from attack.benchmark_attacks import BENCHMARK_ATTACKS               # noqa: E402
 from blue.features import compute_features, build_graph_data         # noqa: E402
 from blue.xgb_model import XGBFraudDetector                          # noqa: E402
@@ -77,13 +82,24 @@ def evaluate(*, seed: int = 42, accounts: int = 1200, merchants: int = 150,
              steps: int = 140, boundary_fraction: float = 0.72,
              folds: int = 4, gnn_epochs: int = 30,
              eval_repeats: int = 5,
-             min_eval_fraud_per_type: int = 5
+             min_eval_fraud_per_type: int = 5,
+             funding_safety: float = SAFETY_DEFAULT,
+             replenish_repeats: bool = False
              ) -> Tuple[Dict, List[str]]:
     """Run one honest baseline evaluation; returns (artifact, console_lines).
 
     Deterministic for a fixed argument set (same seed/accounts/merchants/
     steps/repeats ⇒ identical artifact). Raises GenerationShortfallError
     when the eval population cannot support a per-type recall estimate.
+
+    Funding hardening (updates.md 2.3): before the eval phase the funded
+    upper tail of the twin is partitioned into DISJOINT, deterministic
+    per-attack-type pools sized to each type's principal × eval_repeats ×
+    funding_safety; eval attacks draw accounts only from their own reserve,
+    so cross-attack-type depletion (the historical A5 starvation) cannot
+    happen, and each type's pool funding per solvency tier is reported in
+    the artifact. Optionally a salary/replenishment twin step runs between
+    eval_repeats iterations when replenish_repeats is True.
     """
     log: List[str] = []
     t_start = time.perf_counter()
@@ -119,15 +135,44 @@ def evaluate(*, seed: int = 42, accounts: int = 1200, merchants: int = 150,
     # ------------------------------------------------------------------
     # 3. Frozen EVAL phase: every six types incl. held-out, fresh seeds,
     #    positioned strictly AFTER the world finished stepping.
+    #
+    #    Funding hardening (updates.md 2.3): ring-fence the funded upper
+    #    tail into disjoint per-type pools BEFORE any eval attack runs.
+    #    Priciest types claim first (funding.order is principal-descending)
+    #    and each type compiles exclusively inside its own reserve, so no
+    #    type can cannibalize another's money — and pool funding is reported
+    #    per solvency tier so shortfalls are loud, not silent.
     # ------------------------------------------------------------------
+    generation_warnings: List[str] = []
+    funding_specs = {aid: BENCHMARK_ATTACKS[aid] for aid in EVAL_TYPES}
+    funding = reserve_funding_pools(
+        world, funding_specs, eval_repeats, safety=funding_safety)
+    log.append("[eval] funding reserves (ring-fenced per type, exec in "
+               f"principal order {funding.order}):")
+    for aid in funding.order:
+        d = funding.diag[aid]
+        log.append(
+            f"  {aid}: pool_n={d['n_accounts']} "
+            f"total=₹{d['total_balance']:,.0f} tiers(100/50/20)="
+            f"{d['tier_100']}/{d['tier_50']}/{d['tier_20']} "
+            f"(required=₹{d['required_balance']:,.0f})")
+    generation_warnings.extend(funding.warnings)
+
     traj_by_type: Dict[str, List[str]] = {}
-    for aid in EVAL_TYPES:
+    funding_observed: Dict[str, List[Dict]] = {}
+    for aid in funding.order:
         reps: List[str] = []
+        observed: List[Dict] = []
         for rep in range(eval_repeats):
-            ec = AttackCompiler(twin, seed=seed + 777 + rep * 13)
+            ec = AttackCompiler(twin, seed=seed + 777 + rep * 13,
+                                funded_pool=funding.pools[aid])
             plan = ec.compile(BENCHMARK_ATTACKS[aid])
+            observed.append(dict(ec.last_funding_stats or {}))
             reps.append(ec.execute(plan))
+            if replenish_repeats and rep < eval_repeats - 1:
+                twin.step()
         traj_by_type[aid] = reps
+        funding_observed[aid] = observed
     log.append(f"[eval] eval trajectories generated: 6 types \u00d7 "
                f"{eval_repeats} repeats (held-out included: {HELD_OUT_TYPES})")
 
@@ -192,7 +237,6 @@ def evaluate(*, seed: int = 42, accounts: int = 1200, merchants: int = 150,
                f"..{int(steps_arr[eval_idx].max())}] cut_step={cut_step}")
     log.append(f"[eval] per-type eval fraud rows: {fraud_per_type}")
 
-    generation_warnings: List[str] = []
     low_bar = 15
     for aid in EVAL_TYPES:
         if fraud_per_type[aid] < low_bar:
@@ -300,7 +344,7 @@ def evaluate(*, seed: int = 42, accounts: int = 1200, merchants: int = 150,
     mp_meta = report_meta.get("multi_prevalence", {}) or {}
     headline_pr = mp_meta.get(HEADLINE_PREVALENCE, {}).get("pr_auc")
     artifact = {
-        "schema": "prometheus.baseline_eval.v3",
+        "schema": "prometheus.baseline_eval.v4",
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "seed": seed,
         "platform": {"python": platform.python_version(),
@@ -313,6 +357,8 @@ def evaluate(*, seed: int = 42, accounts: int = 1200, merchants: int = 150,
             "folds": folds, "gnn_epochs": gnn_epochs,
             "eval_repeats": eval_repeats,
             "min_eval_fraud_per_type": min_eval_fraud_per_type,
+            "funding_safety": funding_safety,
+            "replenish_repeats": replenish_repeats,
         },
         "holdout": {
             **holdout.to_dict(),
@@ -331,6 +377,16 @@ def evaluate(*, seed: int = 42, accounts: int = 1200, merchants: int = 150,
             "cut_step": int(cut_step),
             "per_type_total_rows": total_per_type,
             "per_type_fraud_rows": fraud_per_type,
+        },
+        "funding": {
+            "reserve_policy": ("disjoint per-type pools carved from the "
+                               "funded upper tail, principal-descending; "
+                               "each type compiles only inside its pool"),
+            "safety": funding_safety,
+            "replenish_between_repeats": replenish_repeats,
+            "exec_order": funding.order,
+            "reserved_pools": funding.diag,
+            "observed_at_compile": funding_observed,
         },
         "generation_warnings": generation_warnings,
         "provenance": {
@@ -388,6 +444,12 @@ def main() -> int:
     ap.add_argument("--min-eval-fraud-per-type", type=int, default=5,
                     help="fail loudly (exit 2) if a type scores below this "
                          "many fraud rows in the eval slice; 0 disables")
+    ap.add_argument("--funding-safety", type=float, default=SAFETY_DEFAULT,
+                    help="reserve multiplier: each type's pool is sized to "
+                         "amount*repeats*safety (updates.md 2.3 ring-fence)")
+    ap.add_argument("--replenish-repeats", action="store_true",
+                    help="run one salary/replenishment twin step between "
+                         "eval_repeats iterations")
     args = ap.parse_args()
 
     try:
@@ -397,6 +459,8 @@ def main() -> int:
             folds=args.folds, gnn_epochs=args.gnn_epochs,
             eval_repeats=args.eval_repeats,
             min_eval_fraud_per_type=args.min_eval_fraud_per_type,
+            funding_safety=args.funding_safety,
+            replenish_repeats=args.replenish_repeats,
         )
     except GenerationShortfallError as exc:
         print(str(exc), file=sys.stderr)
