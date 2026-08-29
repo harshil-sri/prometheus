@@ -3,7 +3,7 @@
 > **READ THIS FIRST in any new session.** This file is the context anchor for Project
 > Prometheus. If the context window dies, a fresh agent reads THIS file plus the code
 > and continues without losing decisions, laws, or status. It is updated at every
-> phase gate. Last updated: Phase 13 (updates.md 2.3 — ring-fenced eval funding) (2026-08-29).
+> phase gate. Last updated: Phase 14 (updates.md 6.1 — agentic-commerce pillar) (2026-08-29).
 
 ---
 
@@ -156,6 +156,7 @@ If a gate fails → fix before moving on.
 | 11 | Freeze: .docx generation, 3 rehearsals, backup clips, submit ≤6PM IST | submission uploaded | ✅ DONE (2026-08-28): `src/docs_gen/build_docx.py` + `__init__.py` created (was missing); `Prometheus_Walkthrough.docx` rebuilt (40,262 bytes, 49 paragraphs, 4 tables, 9 sections, all numbers live from artifacts/*.json). 12/12 JSON artifacts valid. `requirements.txt` pin fixed (pandas 3.0.2→2.3.3 to match installed). Dockerfile + CI YAML verified. Fresh-clone gate PASS in `C:\Users\iamda\AppData\Local\Temp\opencode\prometheus_freshclone`: `pip install -r requirements.txt && pytest tests/` → 151/151 passed in 158s; `bench_twin.py` PASS 5.5s vs 30s budget; `build_docx.py` writes 40262b docx; `/api/init` + `/api/combo` E2E confirmed (0/4 stages caught — supply-chain blindness). Ready for final single git push. |
 | 12 | Impl Phase 1 (updates.md 2.1): wire E/C evidence into structured score | `test_investigator.py` gate + full suite green | ✅ DONE (2026-08-29): suite 159/159 green (155 + 4 new E/C tests). `compute_structured_score` + `FittedStructuredScore.predict_row` now take `external_evidence`/`campaign_evidence` with `w_e`/`w_c` in `DEFAULT_WEIGHTS` (120/80). New pure, deterministic mappers in `src/scoring/evidence_mapping.py` (sanctions max match_strength, OSINT risk-state/device-history/watch-flags, memory recurrence/3). CaseManager registers full OSINT risk fields + `external_evidence`/`campaign_evidence` evidence entries, `reason_evidence_ids` now has osint/external/campaign; `/api/score` shares `case_evidence_context()` with `/api/investigate` (single source, cannot disagree). Band-reachability gap bridged (670 REVIEW → 802 DECLINE with E/C). |
 | 13 | Impl Phase 2 (updates.md 2.3): ring-fence eval funding per attack type | suite green + artifact regenerated w/ `funding` block + fp intact | ✅ DONE (2026-08-29): suite 164/164 green (159 + 5 new funding tests). New `src/attack/funding.py`: `reserve_funding_pools()` partitions the funded upper tail into DISJOINT, deterministic per-type pools (rank = live balance desc + account_id asc; pure function of world state ⇒ same seed ⇒ same reservation). `AttackCompiler(funded_pool=...)` selects entities EXCLUSIVELY within the reserve and records per-tier (100/50/20%) pool funding in `last_funding_stats` + a `funded_pool_N_accounts` precondition. Eval phase executes priciest-first (A5→A4→A6→A1→A2→A3), reserves 5 fully-fundable accounts/type, reports `funding.reserved_pools` + `funding.observed_at_compile` in `baseline_eval.json` (schema v4), warns loudly when a pool can't anchor every repeat. Optional `--replenish-repeats`. REGENERATED artifact (config unchanged 1200×150×140): fingerprint STILL `292cc7f6…a162`, A5 n_fraud=20 (was 0/none pre-gate), A2 honestly still 0.00 (held-out); headline 5% PR-AUC 0.880; run-to-run deterministic (only wall-clock fields differ). |
+| 14 | Impl Phase 3 (updates.md 6.1): agentic-commerce pillar T9 (RC-1..RC-5) + PCAT + judges | suite green + `artifacts/protocol_eval.json` before/after + fp intact | ✅ DONE (2026-08-29): suite 191/191 green (164 + 27 new protocol tests). NEW pillar: `src/twin/agentic.py` (`AgenticCommerce`) deterministic sha256 Mandate signing + scoped credentials + merchant registry (mirrors `world.merchants`) + `checkout()` with policy hooks and atomic P4 budget CAS + audit events + observable `session_log`; `src/attack/protocol_attacks.py` `run_t9_case()` + `benign_checkout()` FP control, registers `protocol_structural` mechanism + `T9` attack type at import (T9 deliberately OUT of ALL/TRAINABLE/HELD_OUT axes → fingerprint untouched); `src/eval/judges.py` 5 pure deterministic judges + benign; `src/policy/pcat.py` `PCATPolicy.enforce(op)` P1 signed registry (real signature check), P2 identity-bound payout, P3 channel/redirect, P4 check-then-deduct CAS, P5 pre-registered caller — live-wired to the AgenticCommerce so construction order never matters. `scripts/protocol_eval.py` → `artifacts/protocol_eval.json` (schema v1; deterministic payload): **naive 5/5 attacks land → pcat 0/5, benign FP 0/5**, per-RC attribution, fingerprint intact, verbatim §8 citations. API: `POST /api/agentic/checkout` (real lock + real enforce + real judge verdict), `GET /api/agentic/status`, `GET /api/protocol` (serves the artifact, honest fallback) — live sandbox owns its OWN WorldState so the twin/init dataset is never perturbed. RC-4 under PCAT still allows the single legit authorization (the TOCTOU overspend is what P4 refuses). |
 
 ## 6. Decisions Log (append-only, dated)
 
@@ -500,11 +501,26 @@ If a gate fails → fix before moving on.
   holdout fingerprint UNCHANGED 292cc7f6…a162, double-run diff = only wall-clock
   fields. Fixes #1 (ordering) + #2 (ring-fence) + #5 (loud diagnostics) from
   updates.md 2.3; #4 deepcopy-per-repeat deferred as not needed given reserves.
+- **2026-08-29 — Agentic-commerce pillar (updates.md 6.1).** New independent
+  T9 story, deliberately OUT of the A1-A6 axes (T9 ∉ TRAINABLE/HELD_OUT/ALL;
+  `register_attack_types(["T9"])` was the first-ever call). Mechanism
+  `protocol_structural` joins the namespace — fingerprint hashes only the
+  held-out sets + seed, so it's untouched (verified in-suite). Baseline
+  (naive) runs land all FIVE RC structural classes regardless of model; the
+  PCAT policy layer (P1 signed-registry, P2 identity-bound payout, P3
+  observable-channel, P4 atomic check-then-deduct, P5 pre-registered caller)
+  blocks 0/5 → 5/5 and keeps benign checkout passing 0/5 FP. Judges are pure
+  functions of structural facts (no model in loop). Eval artifact
+  `artifacts/protocol_eval.json` is deterministic payload-wise and carries the
+  verbatim §8 citations. API adds `/api/agentic/*` + `/api/protocol`; the live
+  sandbox owns its OWN WorldState so the twin/init dataset + 191-test suite
+  are never perturbed. RC-4 under PCAT intentionally still allows ONE
+  legitimate authorization (that IS the remediation — no TOCTOU overspend).
 
 ## 7. How to Run Everything (verified commands, repo root)
 
 ```powershell
-# Tests (all green as of Phase 13 gate: 164 passed)
+# Tests (all green as of Phase 14 gate: 191 passed)
 pytest tests/ -v
 
 # Twin performance benchmark (writes artifacts/twin_perf.json; exit 1 if >30s)
@@ -515,6 +531,11 @@ python scripts/bench_twin.py
 python scripts/baseline_eval.py
 # Optional: run a salary/replenishment twin step between eval repeats
 python scripts/baseline_eval.py --replenish-repeats
+
+# T9 protocol/agentic-manipulation before/after eval (RC-1..RC-5 + benign FP;
+#   writes artifacts/protocol_eval.json; 5/5 -> 0/5, FP 0/5, fp intact)
+python scripts/protocol_eval.py
+#   (--seed holdout seed, --rng-seed layout seed, --cases per-RC repetitions)
 
 # Seed × scale robustness sweep (writes artifacts/sweep_eval.json)
 python scripts/sweep_eval.py --seeds 42 43 44 45 \
@@ -585,8 +606,9 @@ P3 suite runtime ≈ 39s; live cycle ≈ 60-90s at 400 accts/60 steps.
 2. Update §4 findings statuses (OPEN→FIXED with phase ref).
 3. Update §7 with any new verified commands.
 4. Note current next-step at the top of §5.
-Next step now: **Implementation phase 2 (updates.md 2.3 — ring-fenced eval
-funding) — DONE, awaiting git commit (Phase 0+1 already committed as 4ef2097;
-Phase 2 pending) on branch `kartik` when user OKs.** All 11 original phases ✅;
-implementation.md phases 0-2 ✅ (suite 164/164). Next: Phase 3 (agentic-commerce
-structural-vs-semantic pillar, updates.md 6.1), per implementation.md.
+Next step now: **Implementation phase 3 (updates.md 6.1 — agentic-commerce
+pillar, T9 RC-1..RC-5 + PCAT P1-P5) — DONE, awaiting git commit (Phases
+0+1 `4ef2097`, 2 `5b12185`, 3 pending this session) on branch `kartik` when
+user OKs.** implementation.md phases 0-3 ✅ (suite 191/191; protocol_eval
+verdict 5/5→0/5, FP 0/5, fp intact). Next: Phase 4 (2.2 fit score weights +
+transparency), per implementation.md.
