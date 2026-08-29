@@ -1636,6 +1636,24 @@ function startStream() {
           <span class="terminal-msg ${isFraud ? 'err' : ''}">${msgHtml}</span>
         `;
         terminal.appendChild(entry);
+        const live = `Step ${payload.step}/${payload.steps || 30} · peak ${payload.peak_score} · ${payload.caught} caught`;
+        if (isFraud) $('streamStatus').textContent = `${live} 🚨 ${payload.attack_type || 'attack'}`;
+        else $('streamStatus').textContent = live;
+      } else if (payload.type === 'init') {
+        const entry = document.createElement('div');
+        entry.className = 'terminal-entry';
+        entry.innerHTML = `<span class="terminal-time">[${time}]</span><span class="terminal-msg ok">🔁 World re-initialized — ${payload.transactions} TXs live.</span>`;
+        terminal.appendChild(entry);
+      } else if (payload.type === 'inject') {
+        const entry = document.createElement('div');
+        entry.className = 'terminal-entry';
+        entry.innerHTML = `<span class="terminal-time">[${time}]</span><span class="terminal-msg err">⚠️ Stream directive queued: ${payload.attack_type}.</span>`;
+        terminal.appendChild(entry);
+      } else if (payload.type === 'combo') {
+        const entry = document.createElement('div');
+        entry.className = 'terminal-entry';
+        entry.innerHTML = `<span class="terminal-time">[${time}]</span><span class="terminal-msg ${payload.detected ? 'err' : 'ok'}">🎯 Combo attack: detected=${payload.detected}, ${payload.total_layers} layers.</span>`;
+        terminal.appendChild(entry);
       } else if (payload.type === 'done') {
         const entry = document.createElement('div');
         entry.className = 'terminal-entry';
@@ -2276,6 +2294,7 @@ async function checkStatus() {
       await loadTrajectories();
       await loadGraph();
       await loadSamplePool();
+      await renderOODHeatmap();
       sampleTransaction('APPROVE');
     }
   } catch (e) {}

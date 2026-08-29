@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import random
+import asyncio
 from typing import Any, Dict, List, Optional
 from pathlib import Path
 
@@ -55,6 +56,9 @@ app.add_middleware(
 )
 
 # Global state for the demo
+from api.events import EventHub
+
+EVENTS = EventHub()
 DEMO_STATE = {
     "twin": None,
     "compiler": None,
@@ -387,6 +391,14 @@ def initialize(req: InitRequest = None,
             f"features, calibration={fit_diag.get('calibration_method')}, "
             f"oof={fit_diag.get('oof_used')}")}]
 
+        # Broadcast the new world to live stream subscribers (non-blocking;
+        # /api/init runs on a threadpool thread).
+        EVENTS.publish({
+            "type": "init",
+            "transactions": len(twin.world.transactions),
+            "features": len(blue.feature_names),
+        })
+
         return {
             "status": "ok",
             "transactions": len(twin.world.transactions),
@@ -716,34 +728,73 @@ def inject_stream(req: InjectRequest):
     if "pending_injections" not in DEMO_STATE:
         DEMO_STATE["pending_injections"] = []
     DEMO_STATE["pending_injections"].append(req.attack_type)
+    # Non-blocking broadcast: the live stream sim loop (single producer)
+    # consumes pending_injections; every subscriber ALSO sees the directive.
+    EVENTS.publish({"type": "inject", "attack_type": req.attack_type})
     return {"status": "ok"}
 
 
-@app.get("/api/stream")
-async def live_stream():
-    """SSE: stream a live red/blue simulation step-by-step with real dynamic attacks.
+# --------------------------------------------------------------------------- #
+# Live SSE War-Room stream (updates.md 5): ONE producer, N subscribers.
+# The 30-step simulation runs as a single background task that publishes
+# step/done events to the EventHub; every EventSource client receives the
+# same run (a subscriber reopened mid-run joins via the hub snapshot). The
+# old design ran a per-client inline simulation, racing over world state.
+# --------------------------------------------------------------------------- #
+import threading as _threading
+_STREAM_LOCK_REGISTRY: Dict[int, tuple] = {}
+_STREAM_LOCK_REGISTRY_LOCK = _threading.Lock()
 
-    Each event is a JSON dict with {type, step, data}. The client
-    reconstructs the War-Room view from these events."""
-    import json as _json
-    import asyncio
 
-    async def event_gen():
-        if not DEMO_STATE["ready"]:
-            yield "data: " + _json.dumps({"type": "error", "detail": "not initialized"}) + "\n\n"
-            return
+def _stream_lock() -> asyncio.Lock:
+    """Per-running-loop stream lock (a new loop ⇒ a new lock, no cross-loop
+    await of a foreign asyncio.Lock when uvicorn reloads). When the loop is
+    brand-new while DEMO_STATE claims a running stream, that flag is stale
+    (the producing loop is dead) — clear it so a fresh run can start."""
+    loop = asyncio.get_running_loop()
+    with _STREAM_LOCK_REGISTRY_LOCK:
+        existing = _STREAM_LOCK_REGISTRY.get(id(loop))
+        if existing is not None and existing[0] is loop:
+            return existing[1]
+        lock = asyncio.Lock()
+        _STREAM_LOCK_REGISTRY[id(loop)] = (loop, lock)
+        if DEMO_STATE.get("stream_running"):
+            logger.warning("stream_running stale from a dead loop; clearing")
+            DEMO_STATE["stream_running"] = False
+    return lock
+
+
+async def _ensure_stream_producer() -> bool:
+    """Start the single producer task if it is not already running.
+
+    Returns True when the caller triggered a FRESH run (so it can reset the
+    hub snapshot), False when a run is in progress or the twin is unready."""
+    if not DEMO_STATE.get("ready"):
+        return False
+    lock = _stream_lock()
+    async with lock:
+        if DEMO_STATE.get("stream_running"):
+            return False
+        DEMO_STATE["stream_running"] = True
+        asyncio.create_task(_stream_producer())
+        return True
+
+
+async def _stream_producer() -> None:
+    """Background sim loop: 30 twin steps with dynamic adversarial attacks,
+    broadcasting every step and a final "done" on the hub."""
+    try:
         twin = DEMO_STATE["twin"]
         bt: BlueTeamEnsemble = DEMO_STATE["blue_team"]
-        
-        # Advance the world randomly to ensure stream is not identical
+
+        # Advance the world randomly to ensure the stream is not identical.
         random.seed()
-        
+
         for step in range(30):
             step_txs = twin.step()
             injected_fraud = []
             attack_name = None
 
-            # Dynamic Adversarial Attacks across simulation timeline
             accts = list(twin.world.accounts.keys())
             merchs = list(twin.world.merchants.keys())
 
@@ -752,9 +803,9 @@ async def live_stream():
                 pending = DEMO_STATE.get("pending_injections", [])
                 if pending:
                     attack_type = pending.pop(0)
-                elif random.random() < 0.2: # 20% chance of attack per step
+                elif random.random() < 0.2:  # 20% chance of attack per step
                     attack_type = random.choice(["A3", "A1", "A4", "A6", "A5"])
-                
+
                 if attack_type == "A3":
                     attack_name = "A3 Card-Testing Micro Probes"
                     src = random.choice(accts)
@@ -775,7 +826,8 @@ async def live_stream():
                         category="retail", mechanism="rule_compiler",
                     )
                     tx2 = twin.world.log_transaction(
-                        from_id=victim, to_id=random.choice(merchs), amount=round(random.uniform(28000, 65000), 2),
+                        from_id=victim, to_id=random.choice(merchs),
+                        amount=round(random.uniform(28000, 65000), 2),
                         step=twin.world.current_step, is_fraud=True,
                         category="retail", mechanism="rule_compiler",
                     )
@@ -787,7 +839,8 @@ async def live_stream():
                     for sender in senders:
                         if sender != mule:
                             t = twin.world.log_transaction(
-                                from_id=sender, to_id=mule, amount=round(random.uniform(8000, 18000), 2),
+                                from_id=sender, to_id=mule,
+                                amount=round(random.uniform(8000, 18000), 2),
                                 step=twin.world.current_step, is_fraud=True,
                                 category="transfer", mechanism="rule_compiler",
                             )
@@ -805,7 +858,8 @@ async def live_stream():
                     attack_name = "A5 Scatter-Gather Layering"
                     send_recv = random.sample(accts, 2)
                     t = twin.world.log_transaction(
-                        from_id=send_recv[0], to_id=send_recv[1], amount=round(random.uniform(15000, 35000), 2),
+                        from_id=send_recv[0], to_id=send_recv[1],
+                        amount=round(random.uniform(15000, 35000), 2),
                         step=twin.world.current_step, is_fraud=True,
                         category="transfer", mechanism="rule_compiler",
                     )
@@ -819,9 +873,10 @@ async def live_stream():
             caught = int((scores >= 0.5).sum()) if scores.size else 0
             high_risk_tx_ids = [t["tx_id"] for t, s in zip(all_step_txs, scores) if s >= 0.7]
 
-            payload = {
+            EVENTS.publish({
                 "type": "step",
                 "step": step + 1,
+                "steps": 30,
                 "normal": len(normal_txs),
                 "fraud": len(fraud_txs),
                 "peak_score": round(peak, 4),
@@ -829,12 +884,54 @@ async def live_stream():
                 "attack_type": attack_name,
                 "total_volume": round(sum(t.get("amount", 0) for t in all_step_txs), 2),
                 "sample_tx_id": high_risk_tx_ids[0] if high_risk_tx_ids else (all_step_txs[0]["tx_id"] if all_step_txs else ""),
-            }
-            yield "data: " + _json.dumps(payload) + "\n\n"
-            await asyncio.sleep(1.0) # Add a real delay to make the stream readable
-        yield "data: " + _json.dumps({"type": "done"}) + "\n\n"
+            })
+            await asyncio.sleep(1.0)  # real delay to make the stream readable
+        EVENTS.publish({"type": "done"})
+    finally:
+        DEMO_STATE["stream_running"] = False
 
-    return StreamingResponse(event_gen(), media_type="text/event-stream")
+
+@app.get("/api/stream")
+async def live_stream():
+    """SSE: subscribe to the shared hub. One producer, N subscribers."""
+    import json as _json
+
+    if not DEMO_STATE.get("ready"):
+        async def not_ready_gen():
+            yield "data: " + _json.dumps({"type": "error",
+                                          "detail": "not initialized"}) + "\n\n"
+        return StreamingResponse(
+            not_ready_gen(), media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache"})
+
+    fresh = await _ensure_stream_producer()
+    if fresh:
+        # This client started a brand-new sim: drop a stale "done" snapshot
+        # NOW (we are on the loop thread) so the subscriber seed below cannot
+        # instantly end the stream with an old terminal event.
+        EVENTS.clear_snapshot()
+
+    queue = await EVENTS.subscribe()
+
+    async def event_gen():
+        try:
+            yield "retry: 1000\n\n"
+            while True:
+                try:
+                    frame = await asyncio.wait_for(
+                        queue.get(), timeout=EVENTS.heartbeat_interval())
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
+                    continue
+                yield frame
+                if frame.startswith("data: ") and _json.loads(frame[6:]).get("type") == "done":
+                    break
+        finally:
+            await EVENTS.unsubscribe(queue)
+
+    return StreamingResponse(
+        event_gen(), media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @app.post("/api/combo")
@@ -852,6 +949,12 @@ def run_combo_attack():
         import random
         combo = SupplyChainCombo(twin, bt, seed=random.randint(1, 1000000))
         result = combo.run()
+        EVENTS.publish({
+            "type": "combo",
+            "detected": bool(result.get("detected", False)),
+            "total_layers": result.get("total_layers", 0),
+            "detail": result.get("summary", result.get("detail", ""))[:256],
+        })
         return result
     except Exception as e:
         import logging

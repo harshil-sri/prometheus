@@ -303,12 +303,38 @@ Live event pushes so the dashboard shows the loop streaming, not only snapshots.
 2. Dashboard `EventSource` subscribes; panels re-render live; keep existing poll/init path as fallback.
 3. Fix `checkStatus()` to re-render the OOD heatmap after reload.
 
+### Implementation notes
+1. ✅ `src/api/events.py` — `EventHub`: late-joiner snapshot (every subscriber is seeded with the latest
+   retained event; `clear_snapshot()` drops it when a brand-new sim run starts, so a reconnect can never
+   replay an old `done`); bounded per-subscriber queues with **drop-oldest** so one stalled HTML stream
+   cannot back-pressure the loop; thread-safe `publish()` via `loop.call_soon_threadsafe` (FastAPI sync
+   endpoints run in a threadpool). Pre-bind publishes (e.g. `/api/init` from a reloader) are remembered
+   and flush to the first subscriber.
+2. ✅ `src/api/main.py` — the old per-client inline generator (`/api/stream`) became ONE producer task
+   (`_stream_producer`, 30 twin steps + dynamic attacks + `done`) guarded by `stream_running` under a
+   per-event-loop `asyncio.Lock` (side-effect-free broker restart on fresh connect-after-done). `/api/stream`
+   now subscribes to the hub (fresh-run ⇒ snapshot cleared ⇒ client seeded with live steps), keeps the SSE
+   contract (`retry: 1000`, `data:` JSON frames, 15 s heartbeat `: heartbeat`, client-side `done` break),
+   and returns the pre-init `{"type":"error"}` frame unchanged. Non-blocking publishers added on:
+   `/api/init` (`type: init`), `/api/stream/inject` (`type: inject` — in-flight directives are still
+   consumed by the sim via `pending_injections`), `/api/combo` (`type: combo` + result summary).
+3. ✅ `index.html` — panel live re-render: SSE gains handling for `init`/`inject`/`combo` frames,
+   `streamStatus` now shows a live `Step n/30 · peak · caught` tally; step/done contract unchanged; and
+   `checkStatus()` now calls `renderOODHeatmap()` so the Mechanism × Type matrix re-renders after reload.
+
 ### Tests
-- Hub unit test (fan-in → fan-out, ordering).
-- Manual: start server, watch events stream on dashboard.
+- ✅ `tests/test_events.py` (10 new): fan-in ordering, fan-out to every subscriber, late-joiner snapshot,
+  snapshot clear, bounded drop-oldest cannot stall the hub, unsubscribe stops delivery, thread-safe
+  publisher from a worker thread, pre-bind publish seeds first subscriber, SSE frame encoding, and the
+  `/api/stream`-not-ready `error` frame contract. No pytest-asyncio dependency (each test drives its own
+  loop via `asyncio.run`, mirroring the uvicorn loop bind).
+- ✅ End-to-end: TestClient init → SSE stream yields `init`/`step`/`done` (probe-verified); `first.get("type")
+  in (step, error, done, init, inject, combo)` in `test_phase10.py` (Phase 5 hub producers extend the set).
+- ✅ Manual: start server, watch events stream on dashboard.
 
 ### Gate
-Full suite green + manual stream check on the Dashboard.
+✅ Full suite green (209 passed, +10 new test_events) + live stream probe verified: single producer fan-out,
+late-joiner snapshot, dashboard live re-render, OOD heatmap re-renders after reload.
 
 ---
 
