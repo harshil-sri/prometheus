@@ -84,7 +84,9 @@ def evaluate(*, seed: int = 42, accounts: int = 1200, merchants: int = 150,
              eval_repeats: int = 5,
              min_eval_fraud_per_type: int = 5,
              funding_safety: float = SAFETY_DEFAULT,
-             replenish_repeats: bool = False
+             replenish_repeats: bool = False,
+             with_mechanism_probe: bool = False,
+             probe_k: int = 2,
              ) -> Tuple[Dict, List[str]]:
     """Run one honest baseline evaluation; returns (artifact, console_lines).
 
@@ -414,6 +416,20 @@ def evaluate(*, seed: int = 42, accounts: int = 1200, merchants: int = 150,
         },
         "per_attack_type": by_type,
     }
+    if with_mechanism_probe:
+        probe = _build_mechanism_probe(
+            twin=twin, world=world, compiler=compiler_ref,
+            holdout_spec=holdout, x_txs=txs, train_idx=train_idx,
+            seed=seed, k=probe_k)
+        artifact["mechanism_probe"] = probe
+        log.append("[eval] mechanism probe (updates.md §4): 4 mechanisms "
+                   f"× {probe_k}/cell")
+        for m in sorted(probe.get("rates", {})):
+            r = probe["rates"][m]
+            nz = {t: v for t, v in r.items() if isinstance(v, float)}
+            if nz:
+                mean_r = round(sum(nz.values()) / len(nz), 3)
+                log.append(f"  {m:16s} mean cell rate={mean_r}")
 
     pr = report_meta["overall"]["pr_auc"]
     log.append("\n[eval] ================= BASELINE (honest, two-axis) ================")
@@ -446,6 +462,11 @@ def main() -> int:
     ap.add_argument("--min-eval-fraud-per-type", type=int, default=5,
                     help="fail loudly (exit 2) if a type scores below this "
                          "many fraud rows in the eval slice; 0 disables")
+    ap.add_argument("--mechanism-probe", action="store_true",
+                help="also run the per-mechanism OOD detection probe "
+                     "(updates.md §4) and embed it in the artifact")
+    ap.add_argument("--probe-k", type=int, default=2,
+                    help="attempts per mechanism × type cell in the probe")
     ap.add_argument("--funding-safety", type=float, default=SAFETY_DEFAULT,
                     help="reserve multiplier: each type's pool is sized to "
                          "amount*repeats*safety (updates.md 2.3 ring-fence)")
@@ -463,6 +484,8 @@ def main() -> int:
             min_eval_fraud_per_type=args.min_eval_fraud_per_type,
             funding_safety=args.funding_safety,
             replenish_repeats=args.replenish_repeats,
+            with_mechanism_probe=args.mechanism_probe,
+            probe_k=args.probe_k,
         )
     except GenerationShortfallError as exc:
         print(str(exc), file=sys.stderr)
