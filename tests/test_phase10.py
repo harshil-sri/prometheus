@@ -115,8 +115,10 @@ def test_stream_endpoint_sse(fastapi_client):
                 break
         assert len(events) >= 1
         first = events[0]
-        # First event is either 'step' or 'error' or 'done'
-        assert first.get("type") in ("step", "error", "done")
+        # Phase 5: hub producers also broadcast init/inject/combo; the first
+        # event a late-joining client sees is the retained hub snapshot (e.g.
+        # the init published on /api/init) or a live step.
+        assert first.get("type") in ("step", "error", "done", "init", "inject", "combo")
 
 
 # ---------------------------------------------------------------------------

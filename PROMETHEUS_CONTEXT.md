@@ -3,7 +3,7 @@
 > **READ THIS FIRST in any new session.** This file is the context anchor for Project
 > Prometheus. If the context window dies, a fresh agent reads THIS file plus the code
 > and continues without losing decisions, laws, or status. It is updated at every
-> phase gate. Last updated: Phase 15 (updates.md 2.2 — fitted score weights) (2026-08-29).
+> phase gate. Last updated: Phase 16 (updates.md 5 — SSE live visualization) (2026-08-29).
 
 ---
 
@@ -158,6 +158,7 @@ If a gate fails → fix before moving on.
 | 13 | Impl Phase 2 (updates.md 2.3): ring-fence eval funding per attack type | suite green + artifact regenerated w/ `funding` block + fp intact | ✅ DONE (2026-08-29): suite 164/164 green (159 + 5 new funding tests). New `src/attack/funding.py`: `reserve_funding_pools()` partitions the funded upper tail into DISJOINT, deterministic per-type pools (rank = live balance desc + account_id asc; pure function of world state ⇒ same seed ⇒ same reservation). `AttackCompiler(funded_pool=...)` selects entities EXCLUSIVELY within the reserve and records per-tier (100/50/20%) pool funding in `last_funding_stats` + a `funded_pool_N_accounts` precondition. Eval phase executes priciest-first (A5→A4→A6→A1→A2→A3), reserves 5 fully-fundable accounts/type, reports `funding.reserved_pools` + `funding.observed_at_compile` in `baseline_eval.json` (schema v4), warns loudly when a pool can't anchor every repeat. Optional `--replenish-repeats`. REGENERATED artifact (config unchanged 1200×150×140): fingerprint STILL `292cc7f6…a162`, A5 n_fraud=20 (was 0/none pre-gate), A2 honestly still 0.00 (held-out); headline 5% PR-AUC 0.880; run-to-run deterministic (only wall-clock fields differ). |
 | 14 | Impl Phase 3 (updates.md 6.1): agentic-commerce pillar T9 (RC-1..RC-5) + PCAT + judges | suite green + `artifacts/protocol_eval.json` before/after + fp intact | ✅ DONE (2026-08-29): suite 191/191 green (164 + 27 new protocol tests). NEW pillar: `src/twin/agentic.py` (`AgenticCommerce`) deterministic sha256 Mandate signing + scoped credentials + merchant registry (mirrors `world.merchants`) + `checkout()` with policy hooks and atomic P4 budget CAS + audit events + observable `session_log`; `src/attack/protocol_attacks.py` `run_t9_case()` + `benign_checkout()` FP control, registers `protocol_structural` mechanism + `T9` attack type at import (T9 deliberately OUT of ALL/TRAINABLE/HELD_OUT axes → fingerprint untouched); `src/eval/judges.py` 5 pure deterministic judges + benign; `src/policy/pcat.py` `PCATPolicy.enforce(op)` P1 signed registry (real signature check), P2 identity-bound payout, P3 observable-channel, P4 check-then-deduct CAS, P5 pre-registered caller — live-wired to the AgenticCommerce so construction order never matters. `scripts/protocol_eval.py` → `artifacts/protocol_eval.json` (schema v1; deterministic payload): **naive 5/5 attacks land → pcat 0/5, benign FP 0/5**, per-RC attribution, fingerprint intact, verbatim §8 citations. API: `POST /api/agentic/checkout` (real lock + real enforce + real judge verdict), `GET /api/agentic/status`, `GET /api/protocol` (serves the artifact, honest fallback) — live sandbox owns its OWN WorldState so the twin/init dataset is never perturbed. RC-4 under PCAT still allows the single legit authorization (the TOCTOU overspend is what P4 refuses). |
 | 15 | Impl Phase 4 (updates.md 2.2): fit score weights + transparency | suite green + artifact renewed w/ fitted `w_*` + dashboard loads it | ✅ DONE (2026-08-29): suite 198/198 green (192 + 6 new test_weights). `DEFAULT_WEIGHTS_PATH` reconciled → `src/artifacts/structured_weights.json` (duplicate API constant removed). New `scripts/fit_weights.py`: monotone-constrained (nnls, non-negative ⇒ monotone) fit of the weighted-formula `w_*` on standardized evidence vs. deterministic targets (canonical-twin fitted-logistic P×1000 + documented 6-cell calibration grid); pure math shared via `src/scoring/weight_fit.py`. DESIGN CONVENTION: the U column enters the design NEGATED (D=[T,G,B,E,C,−U]) so the nnls coefficient IS w_u — a penalty monotone-DECREASING in U, matching the formula's `−w_u·U` (a naive +U design contradicted the formula). Artifact regenerated on the canonical config (n=8022/pos=16, schema v2) with **no wall-clock fields → byte-identical across reruns**; carries `w_fit` diagnostics (design note, per-column std, degenerate terms, reachability scale, residual, grid) EXPLAINING why a term fits to ~0 (ensemble-output collinearity on the twin) instead of hiding it. Fitted: w_t 820.63, w_e/w_c 90.12 each, w_g/w_b 0, w_u 0.86 (tiny but honest penalty; magnitude verified — raw drops by exactly w_u per unit U); reachability max raw = 1000 (all bands reachable). `predict_row` uses fitted w_e/w_c additively (seam-equal, tested); `save()` merge-preserves `w_formula`/`baseline_weights`/`w_fit` so random-seed session refits never wipe the canonical weights. API: `GET /api/structured-weights` (committed-artifact report); `/api/score` now surfaces `weights_formula` + `weights_vs_baseline`. Dashboard: new **Fitted vs Baseline Formula Weights** panel (per-term Δ, monotone pill, decline-reachability, provenance) loaded post-init. FAIL-LOUD: negative-weight v2 artifact ⇒ ValueError on load (non-monotone never silently loads). v1 artifacts (n=786) still back-compat load. |
+| 16 | Impl Phase 5 (updates.md 5): SSE fan-out + live dashboard | suite green + live stream probe (single producer → N viewers) | ✅ DONE (2026-08-29): suite 209/209 green (199 + 10 new test_events). New `src/api/events.py` `EventHub`: asyncio.Queue fan-out, thread-safe `publish()` (loop.call_soon_threadsafe — FastAPI threadpool endpoints can broadcast), late-joiner snapshot seeded on subscribe (`clear_snapshot()` on a brand-new run so reconnects never replay a stale `done`), bounded queues with drop-oldest so one stalled HTML stream cannot back-pressure the loop, pre-bind publishes remembered. `/api/stream` went from a per-client inline generator (each tab raced its own 30-step sim over the same world) to ONE producer task guarded by `stream_running` under a per-event-loop `asyncio.Lock`; endpoint subscribes to the hub, contract unchanged (`retry: 1000`, `data:` JSON, 15s `: heartbeat`, client `done` break, pre-init `error` frame). Publishers added on `/api/init` (init), `/api/stream/inject` (inject), `/api/combo` (combo+summary). Dashboard: live `Step n/30 · peak · caught` tally in `streamStatus`, terminal handles init/inject/combo frames, and `checkStatus()` now calls `renderOODHeatmap()` — the Mechanism × Type matrix finally re-renders after a page reload (long-standing gap). Live-stream probe verified via TestClient: init→snapshot seed→30 steps+done fan out; `test_phase10.py` first-event whitelist extended to the hub types. Docs: implementation.md Phase 5 ✅. Commit `33decb5` on `kartik`; user pushes. |
 
 ## 6. Decisions Log (append-only, dated)
 
@@ -541,11 +542,32 @@ If a gate fails → fix before moving on.
   the committed artifact + dashboard panel stay canonical. Fail-loud on
   negative weights (non-monotone artifacts refuse to load); v1 artifacts
   remain back-compat loads.
+- **2026-08-29 — SSE fan-out hub (updates.md 5).** The old `/api/stream` ran a
+  per-client inline 30-step simulation — two tabs meant two sims racing over the
+  same world + `pending_injections`, giving viewers DIFFERENT results and
+  non-deterministic injections. Adopted: a single idempotent producer task
+  (`_stream_producer`) guarded by `stream_running` under a per-event-loop
+  `asyncio.Lock` (a fresh loop gets a fresh lock — no cross-loop awaits when
+  uvicorn reloads), publishing step/done frames on a shared `EventHub`
+  (`src/api/events.py`). Endpoint subscribes; every EventSource client follows
+  the SAME run. Three behavioral decisions worth keeping: (1) late-joiner
+  snapshot — each subscriber is seeded with the latest retained event, and
+  `clear_snapshot()` runs when a client triggers a brand-new sim so a reconnect
+  can never replay a stale `done` and instantly die; (2) bounded queues with
+  drop-oldest — a stalled browser tab cannot back-pressure the loop (publish
+  from threadpool endpoints is `call_soon_threadsafe`, never blocking);
+  (3) contract stability — `retry: 1000`, `data:` JSON, 15s `: heartbeat`, the
+  pre-init `{"type":"error"}` frame, and the client-side `done` break are all
+  preserved, so the dashboard's existing EventSource kept working with zero
+  backend-driven UI change; dashboard only GAINED live `Step n/30 · peak ·
+  caught` tally + init/inject/combo terminal frames + the OOD-heatmap
+  after-reload render (the `checkStatus()` gap from the old Phase 5 ground
+  truth).
 
 ## 7. How to Run Everything (verified commands, repo root)
 
 ```powershell
-# Tests (all green as of Phase 15 gate: 198 passed)
+# Tests (all green as of Phase 16 gate: 209 passed)
 pytest tests/ -v
 
 # Fit the weighted-formula w_* (updates.md 2.2; byte-deterministic,
@@ -605,6 +627,12 @@ python scripts/feasibility_eval.py
 
 # Dashboard
 # cd src/api; $env:PYTHONPATH=".."; python main.py   → http://localhost:8000
+
+# Live SSE stream (Phase 5): ONE producer fan-out. Start the dashboard, press
+# "Live War-Room Stream" — every open tab follows the SAME 30-step sim run
+# (EventHub in src/api/events.py: late-joiner snapshot, drop-oldest bounded
+# queues, thread-safe publish from /api/init | /api/stream/inject | /api/combo).
+# The /api/stream not-ready/`error` frame, heartbeat and `done` break are unchanged.
 ```
 
 Python 3.13.11 (miniconda) on Windows. Dev machine 8 GB CPU-only.
@@ -635,9 +663,10 @@ P3 suite runtime ≈ 39s; live cycle ≈ 60-90s at 400 accts/60 steps.
 2. Update §4 findings statuses (OPEN→FIXED with phase ref).
 3. Update §7 with any new verified commands.
 4. Note current next-step at the top of §5.
-Next step now: **Phase 4 (updates.md 2.2 — fitted score weights +
-transparency) — DONE, awaiting git commit (Phases 0+1 `4ef2097`, 2
-`5b12185`, 3 `a229ffa`, 1-3 audit `1d78ae1`, Phase 4 pending user OK) on
-branch `kartik`.** implementation.md Phase 4 ✅ (suite 198/198; fitted
-`w_*`, byte-deterministic script, `/api/structured-weights`, dashboard
-panel). Next: Phase 5 (5 SSE / live visualization), per implementation.md.
+Next step now: **Phase 5 (updates.md 5 — SSE / live visualization) — DONE,
+awaiting git commit (Phases 0+1 `4ef2097`, 2 `5b12185`, 3 `a229ffa`, 1-3 audit
+`1d78ae1`, Phase 4 `4c272f9` pushed, Phase 5 `33decb5` pending user push) on
+branch `kartik`.** implementation.md Phase 5 ✅ (suite 209/209; EventHub
+fan-out, single producer `/api/stream`, live dashboard re-render, OOD heatmap
+reload fix). Next: Phase 6 (6.2 diffusion-model fidelity critic), per
+implementation.md.
