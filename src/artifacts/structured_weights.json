@@ -1,13 +1,15 @@
 {
+  "schema": "prometheus.structured_weights.v2",
+  "formula": "R = w_t\u00b7T + w_g\u00b7G + w_b\u00b7B + w_e\u00b7E + w_c\u00b7C \u2212 w_u\u00b7U",
   "coef": [
-    4.320037629280605,
-    1.1168824172096914,
-    4.297470271556075,
+    6.3764225,
+    1.22815204,
+    6.32178222,
     0.0,
-    -0.04212889680120425,
-    -0.5914035896650292
+    -0.02532409,
+    -0.57004028
   ],
-  "intercept": -4.441660320068343,
+  "intercept": -6.517529,
   "columns": [
     "xgb",
     "gnn",
@@ -17,9 +19,111 @@
     "spectral_star"
   ],
   "fit_meta": {
-    "n": 786,
+    "n": 8022,
     "pos": 16,
     "fit_auc": 1.0,
-    "source": "fitted_in_sample"
+    "source": "fitted_in_sample",
+    "fit_config": {
+      "seed": 42,
+      "accounts": 500,
+      "merchants": 100,
+      "steps": 100
+    }
+  },
+  "w_formula": {
+    "w_t": 820.6283,
+    "w_g": 0.0,
+    "w_b": 0.0,
+    "w_e": 90.1183,
+    "w_c": 90.1183,
+    "w_u": 0.8649
+  },
+  "baseline_weights": {
+    "w_t": 300.0,
+    "w_g": 250.0,
+    "w_b": 200.0,
+    "w_e": 120.0,
+    "w_c": 80.0,
+    "w_u": 50.0
+  },
+  "w_fit": {
+    "algorithm": "nnls (scipy.optimize) on standardized evidence",
+    "monotone": "non-negative weights: raising any evidence term cannot lower the raw score",
+    "reachability": "rescaled so max raw = 1000 (all bands reachable)",
+    "target": "fitted logistic P(fraud)x1000 on real rows; documented calibration grid for the E/C/uncertainty axes",
+    "n_real": 8022,
+    "n_grid": 6,
+    "design": "D = [T, G, B, E, C, -U] so the nnls coefficient of column 5 IS w_u (penalty, monotone-decreasing in U)",
+    "real_row_column_std": {
+      "T": 0.0447,
+      "G": 0.1048,
+      "B": 0.0444,
+      "E": 0.0,
+      "C": 0.0,
+      "U": 0.1044
+    },
+    "degenerate_on_real_rows": [
+      "E",
+      "C"
+    ],
+    "reachability_scale": 0.870482,
+    "max_raw": 1148.7889,
+    "residual": 704.439495,
+    "grid": [
+      {
+        "t": 0.0,
+        "g": 0.0,
+        "b": 0.0,
+        "e": 0.0,
+        "c": 0.0,
+        "u": 0.0,
+        "target": 0.0
+      },
+      {
+        "t": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "e": 0.0,
+        "c": 0.0,
+        "u": 0.0,
+        "target": 700.0
+      },
+      {
+        "t": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "e": 0.0,
+        "c": 0.0,
+        "u": 1.0,
+        "target": 500.0
+      },
+      {
+        "t": 0.0,
+        "g": 0.0,
+        "b": 0.0,
+        "e": 1.0,
+        "c": 0.0,
+        "u": 0.0,
+        "target": 250.0
+      },
+      {
+        "t": 0.0,
+        "g": 0.0,
+        "b": 0.0,
+        "e": 0.0,
+        "c": 1.0,
+        "u": 0.0,
+        "target": 250.0
+      },
+      {
+        "t": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "e": 1.0,
+        "c": 1.0,
+        "u": 0.0,
+        "target": 1000.0
+      }
+    ]
   }
 }

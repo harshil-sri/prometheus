@@ -30,7 +30,7 @@ from sensitivity.engine import SensitivityEngine
 from feedback.loop import FeedbackLoop
 from scoring.structured_score import (
     compute_structured_score, score_from_ml_probs, get_band, get_band_color,
-    FittedStructuredScore,
+    FittedStructuredScore, DEFAULT_WEIGHTS_PATH,
 )
 from eval.harness import full_report, multi_prevalence_eval
 from api.graph import build_knowledge_graph, list_trajectories_summary, extract_node_profile
@@ -40,9 +40,9 @@ from twin.agentic import AgenticCommerce
 from policy.pcat import PCATPolicy
 from eval.judges import judge_rc as _judge_rc
 
-STRUCTURED_WEIGHTS_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "artifacts", "structured_weights.json")
+# Canonical weights path (updates.md 2.2 reconciliation): the fitted weights
+# live at src/artifacts/structured_weights.json — one constant, both scorers.
+STRUCTURED_WEIGHTS_PATH = DEFAULT_WEIGHTS_PATH
 
 app = FastAPI(title="Project Prometheus Dashboard", version="1.0.0")
 
@@ -335,6 +335,21 @@ def initialize(req: InitRequest = None,
                                 for t in twin.world.transactions])
             struct.fit_meta["source"] = "fitted_in_sample"
             struct.save(STRUCTURED_WEIGHTS_PATH)
+            # Session inits refit the logistic with a RANDOM seed (dashboard
+            # quota 2000/200) — keep the committed fitted w_* by re-loading
+            # the saved artifact (save() merge-preserves w_formula) onto this
+            # object so /api/score stays on the canonical formula weights.
+            try:
+                merged = FittedStructuredScore.load(STRUCTURED_WEIGHTS_PATH)
+                if merged is None:
+                    raise FileNotFoundError(STRUCTURED_WEIGHTS_PATH)
+                # keep this object's freshly fitted logistic coefficients
+                merged.coef_ = struct.coef_
+                merged.intercept_ = struct.intercept_
+                merged.fit_meta = struct.fit_meta
+                struct = merged
+            except Exception as exc:                       # noqa: BLE001
+                logger.warning("weights merge failed: %s", exc)
         except Exception as exc:                     # noqa: BLE001
             logger.warning("structured score fitting failed: %s", exc)
             struct = None
@@ -518,6 +533,8 @@ def get_score(tx_id: str = ""):
                                   external_evidence=ext_ev,
                                   campaign_evidence=camp_ev)
         weights_source = struct.fit_meta.get("source", "fitted")
+        weights_formula = dict(struct.w_formula or {})
+        weights_vs_baseline = struct.weights_report()["delta"] if struct.w_formula else {}
     else:
         prob = sig_scalar["meta"]
         legacy = score_from_ml_probs(prob, prob, prob)
@@ -525,6 +542,8 @@ def get_score(tx_id: str = ""):
                 "p_fraud": round(prob, 4),
                 "weights_provenance": {"source": "legacy_fallback"}}
         weights_source = "legacy_fallback"
+        weights_formula = {}
+        weights_vs_baseline = {}
 
     # Safely format counterfactual object
     cf_raw = deep.get("counterfactual")
@@ -548,7 +567,20 @@ def get_score(tx_id: str = ""):
         "top_reason_column": deep.get("top_reason_column"),
         "counterfactual": cf_formatted,
         "weights_source": weights_source,
+        "weights_formula": weights_formula,
+        "weights_vs_baseline": weights_vs_baseline,
     }
+
+
+@app.get("/api/structured-weights")
+def get_structured_weights():
+    """Fitted-vs-baseline weighted-formula report (updates.md 2.2
+    transparency). Reads the COMMITTED canonical artifact, not the
+    random-seed session refit, so the panel is deterministic."""
+    struct = FittedStructuredScore.load_or_none(STRUCTURED_WEIGHTS_PATH)
+    if struct is None:
+        return {"present": False}
+    return {"present": True, **struct.weights_report()}
 
 
 @app.get("/api/sample-txs")

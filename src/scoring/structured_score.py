@@ -160,9 +160,42 @@ from typing import List, Optional  # noqa: E402
 
 SCORE_COLUMNS = ["xgb", "gnn", "meta", "manifold",
                  "spectral_cycle", "spectral_star"]
+# Canonical weights path (Phase 4 reconciliation, updates.md 2.2): the fit
+# lives in `src/artifacts/structured_weights.json` — NOT the repo-root
+# `artifacts/` dir, which never existed for weights. v2 schema carries the
+# fitted `w_*` (weighted formula) alongside the logistic coefs.
 DEFAULT_WEIGHTS_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "artifacts", "structured_weights.json")
+
+WEIGHTS_SCHEMA = "prometheus.structured_weights.v2"
+
+# Evidence terms of the weighted formula R = w_t·T + w_g·G + w_b·B
+# + w_e·E + w_c·C − w_u·U (order used by the fitter).
+FORMULA_TERMS = ["w_t", "w_g", "w_b", "w_e", "w_c", "w_u"]
+
+
+def _read_weights_file(path: str) -> Optional[dict]:
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return None
+
+
+def _validate_monotone(w: dict) -> None:
+    """Fail loudly if any fitted formula weight is negative.
+
+    The weighted formula must be monotone in every evidence term: raising a
+    positive evidence term never lowers the raw score, and the uncertainty
+    penalty term w_u must itself be non-negative (it only ever subtracts)."""
+    for k in FORMULA_TERMS:
+        v = float(w.get(k, 0.0))
+        if v < 0.0:
+            raise ValueError(
+                f"monotone constraint violated by fitted formula: {k}={v} < 0. "
+                f"Refuse to load an artifact that would make the deep score "
+                f"non-monotone in its inputs.")
 
 
 class FittedStructuredScore:
@@ -178,6 +211,16 @@ class FittedStructuredScore:
         self.intercept_: float = 0.0
         self.columns: List[str] = list(SCORE_COLUMNS)
         self.fit_meta: dict = {}
+        # Fitted weighted-formula weights (Phase 4 / updates.md 2.2). None
+        # until a v2 weights artifact (scripts/fit_weights.py) is loaded;
+        # when present, predict_row uses its w_e/w_c instead of the hand-set
+        # DEFAULT_WEIGHTS — the live formula stops being folklore constants.
+        self.w_formula: Optional[dict] = None
+        self.baseline_weights: Optional[dict] = None
+        # Fit diagnostics (Phase 4): why a term may collapse to 0, the
+        # calibration grid, reachability scale. Canonical blob only; session
+        # refits merge-preserve it so the panel keeps its explanation.
+        self.w_fit: Optional[dict] = None
 
     # ------------------------------------------------------------------ #
     def fit(self, X_signals: "np.ndarray", y,
@@ -232,8 +275,8 @@ class FittedStructuredScore:
         import math
         p_fraud = 1.0 / (1.0 + math.exp(-z)) if z >= -35 else 0.0
 
-        w_e = float(DEFAULT_WEIGHTS.get("w_e", 0.0))
-        w_c = float(DEFAULT_WEIGHTS.get("w_c", 0.0))
+        w_e = float((self.w_formula or DEFAULT_WEIGHTS).get("w_e", 0.0))
+        w_c = float((self.w_formula or DEFAULT_WEIGHTS).get("w_c", 0.0))
         e_ext = max(0.0, min(1.0, float(external_evidence)))
         e_camp = max(0.0, min(1.0, float(campaign_evidence)))
         score = max(0.0, min(1000.0, p_fraud * 1000.0
@@ -299,17 +342,64 @@ class FittedStructuredScore:
                 "w_c": round(w_c, 4),
             },
             "weights_provenance": self.fit_meta,
+            "formula_weights": dict(self.w_formula or DEFAULT_WEIGHTS),
             "columns": list(self.columns),
+        }
+
+    # ------------------------------------------------------------------ #
+    def weights_report(self) -> dict:
+        """Fitted-vs-baseline weighted-formula weights + provenance.
+
+        The weighted formula R = w_t·T + w_g·G + w_b·B + w_e·E + w_c·C − w_u·U
+        is what the dashboard/API surface as the interpolatable deep-score
+        view; this report is the Phase 4 "show the fit" payload."""
+        fitted = self.w_formula or {}
+        baseline = dict(self.baseline_weights or DEFAULT_WEIGHTS)
+        delta = {k: round(float(fitted.get(k, 0.0)) - float(baseline.get(k, 0.0)), 4)
+                 for k in FORMULA_TERMS}
+        pos_sum = sum(float(v) for k, v in fitted.items() if k != "w_u")
+        reach = round(pos_sum - float(fitted.get("w_u", 0.0)), 4)
+        return {
+            "schema": WEIGHTS_SCHEMA,
+            "fitted": {k: round(float(fitted.get(k, 0.0)), 4)
+                       for k in FORMULA_TERMS},
+            "baseline": {k: round(float(baseline.get(k, 0.0)), 4)
+                         for k in FORMULA_TERMS},
+            "delta": delta,
+            "monotone": (all(float(v) >= 0.0 for v in fitted.values())
+                         if fitted else None),
+            "band_reachability": {
+                "max_raw": reach,
+                "decline_reachable": reach >= 700.0,
+            },
+            "provenance": self.fit_meta,
         }
 
     # ------------------------------------------------------------------ #
     def save(self, path: Optional[str] = None) -> str:
         path = path or DEFAULT_WEIGHTS_PATH
         os.makedirs(os.path.dirname(path), exist_ok=True)
+        prev = _read_weights_file(path)
+        if prev is not None:
+            wf = self.w_formula or prev.get("w_formula")
+            bl = self.baseline_weights or prev.get("baseline_weights")
+            wfit = self.w_fit or prev.get("w_fit")
+        else:
+            wf, bl = self.w_formula, self.baseline_weights
+            wfit = self.w_fit
+        blob = {
+            "schema": WEIGHTS_SCHEMA,
+            "formula": "R = w_t·T + w_g·G + w_b·B + w_e·E + w_c·C − w_u·U",
+            "coef": self.coef_,
+            "intercept": self.intercept_,
+            "columns": self.columns,
+            "fit_meta": self.fit_meta,
+            "w_formula": wf,
+            "baseline_weights": bl,
+            "w_fit": wfit,
+        }
         with open(path, "w") as f:
-            json.dump({"coef": self.coef_, "intercept": self.intercept_,
-                       "columns": self.columns, "fit_meta": self.fit_meta},
-                      f, indent=2)
+            json.dump(blob, f, indent=2, default=str)
         return path
 
     @classmethod
@@ -322,6 +412,12 @@ class FittedStructuredScore:
         obj.intercept_ = float(blob["intercept"])
         obj.columns = list(blob["columns"])
         obj.fit_meta = dict(blob.get("fit_meta", {}))
+        obj.w_formula = ({k: float(blob["w_formula"][k]) for k in FORMULA_TERMS}
+                         if blob.get("w_formula") else None)
+        obj.baseline_weights = dict(blob.get("baseline_weights") or {})
+        obj.w_fit = blob.get("w_fit")
+        if obj.w_formula:
+            _validate_monotone(obj.w_formula)
         return obj
 
     @classmethod

@@ -875,6 +875,30 @@
         Transactions in the <strong>Deep Path</strong> compute full SHAP attribution, GNN topological embeddings, and 6-signal calibrated logistic weights without affecting the high-throughput <strong>Fast Path</strong>. Click any node or transaction below to score it live.
       </div>
     </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Fitted vs Baseline Formula Weights</div>
+        <span class="status-pill" style="padding:2px 8px; font-size:10px; font-family:var(--font-mono);" id="weightsFitPill">—</span>
+      </div>
+      <div style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:10px;">
+        Monotone-constrained fit (<code>w_*</code> formula) from updates.md 2.2: non-negative nnls on standardized evidence, rescaled so the maximum raw score reaches 1000. Provenance and diagnostics live in the committed artifact.
+      </div>
+      <table style="width:100%; font-size:11px; font-family:var(--font-mono); border-collapse:collapse; color:var(--text-muted);">
+        <thead>
+          <tr style="color:var(--text-submuted); border-bottom:1px solid var(--border);">
+            <th style="text-align:left; padding:4px 6px;">Term</th>
+            <th style="text-align:right; padding:4px 6px;">Fitted</th>
+            <th style="text-align:right; padding:4px 6px;">Baseline</th>
+            <th style="text-align:right; padding:4px 6px;">Δ</th>
+          </tr>
+        </thead>
+        <tbody id="weightsFitBody">
+          <tr><td colspan="4" style="padding:8px; color:var(--text-submuted);">Initializing…</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:10px; font-size:11px; color:var(--text-submuted);" id="weightsFitProvenance"></div>
+    </div>
   </div>
 
   <!-- Navigation Tab Bar -->
@@ -1173,6 +1197,37 @@ async function api(url, opts) {
 // ---------------------------------------------------------------------------
 // Initialization
 // ---------------------------------------------------------------------------
+async function loadWeightsPanel() {
+  try {
+    const rep = await api('/api/structured-weights');
+    if (!rep || rep.present !== true) {
+      $('weightsFitPill').textContent = 'Artifact Missing';
+      $('weightsFitBody').innerHTML = '<tr><td colspan="4" style="padding:8px; color:var(--text-submuted);">No weights artifact committed.</td></tr>';
+      return;
+    }
+    $('weightsFitPill').textContent = rep.monotone ? 'Monotone ✓' : 'Not monotone';
+    const rows = ['w_t', 'w_g', 'w_b', 'w_e', 'w_c', 'w_u'].map(function (k) {
+      const f = rep.fitted[k] || 0, b = rep.baseline[k] || 0;
+      const d = f - b;
+      const color = d > 5 ? 'var(--status-green)' : (d < -5 ? 'var(--status-rose)' : 'var(--text-muted)');
+      return `<tr><td style="padding:4px 6px;">${k}</td>` +
+        `<td style="text-align:right; padding:4px 6px; color:var(--text-muted);">${(f).toFixed(1)}</td>` +
+        `<td style="text-align:right; padding:4px 6px; color:var(--text-submuted);">${(b).toFixed(1)}</td>` +
+        `<td style="text-align:right; padding:4px 6px; color:${color};">${d >= 0 ? '+' : ''}${d.toFixed(1)}</td></tr>`;
+    }).join('');
+    rows += `<tr style="border-top:1px solid var(--border); color:var(--text-submuted);">` +
+      `<td style="padding:4px 6px;">decline reachable</td><td colspan="3" style="text-align:right; padding:4px 6px;">${rep.band_reachability.decline_reachable ? 'yes (max raw 1000)' : 'no'}</td></tr>`;
+    $('weightsFitBody').innerHTML = rows;
+    const pv = rep.provenance || {};
+    const cfg = pv.fit_config || {};
+    $('weightsFitProvenance').textContent =
+      `fit n=${pv.n ?? '—'} pos=${pv.pos ?? '—'} auc=${pv.fit_auc != null ? pv.fit_auc.toFixed(2) : '—'} · ` +
+      `schema ${rep.schema} · canonical config seed ${cfg.seed ?? '—'}, ${cfg.accounts ?? '—'} accts / ${cfg.merchants ?? '—'} merchants / ${cfg.steps ?? '—'} steps`;
+  } catch (e) {
+    $('weightsFitPill').textContent = 'Unavailable';
+  }
+}
+
 async function initialize() {
   const btn = $('initBtn');
   btn.disabled = true;
@@ -1202,6 +1257,7 @@ async function initialize() {
     btn.innerHTML = '<span>✅</span><span>Twin Ready</span>';
 
     logEvent(`Twin initialized: ${data.transactions.toLocaleString()} TXs, ${data.features} features, ${data.graph_nodes} graph nodes, fraud ratio ${(data.fraud_ratio * 100).toFixed(2)}%`, 'ok');
+    loadWeightsPanel();
 
     await loadAttackTypes();
     await loadTrajectories();

@@ -3,7 +3,7 @@
 > **READ THIS FIRST in any new session.** This file is the context anchor for Project
 > Prometheus. If the context window dies, a fresh agent reads THIS file plus the code
 > and continues without losing decisions, laws, or status. It is updated at every
-> phase gate. Last updated: Phase 14 (updates.md 6.1 — agentic-commerce pillar) (2026-08-29).
+> phase gate. Last updated: Phase 15 (updates.md 2.2 — fitted score weights) (2026-08-29).
 
 ---
 
@@ -157,6 +157,7 @@ If a gate fails → fix before moving on.
 | 12 | Impl Phase 1 (updates.md 2.1): wire E/C evidence into structured score | `test_investigator.py` gate + full suite green | ✅ DONE (2026-08-29): suite 159/159 green (155 + 4 new E/C tests). `compute_structured_score` + `FittedStructuredScore.predict_row` now take `external_evidence`/`campaign_evidence` with `w_e`/`w_c` in `DEFAULT_WEIGHTS` (120/80). New pure, deterministic mappers in `src/scoring/evidence_mapping.py` (sanctions max match_strength, OSINT risk-state/device-history/watch-flags, memory recurrence/3). CaseManager registers full OSINT risk fields + `external_evidence`/`campaign_evidence` evidence entries, `reason_evidence_ids` now has osint/external/campaign; `/api/score` shares `case_evidence_context()` with `/api/investigate` (single source, cannot disagree). Band-reachability gap bridged (670 REVIEW → 802 DECLINE with E/C). |
 | 13 | Impl Phase 2 (updates.md 2.3): ring-fence eval funding per attack type | suite green + artifact regenerated w/ `funding` block + fp intact | ✅ DONE (2026-08-29): suite 164/164 green (159 + 5 new funding tests). New `src/attack/funding.py`: `reserve_funding_pools()` partitions the funded upper tail into DISJOINT, deterministic per-type pools (rank = live balance desc + account_id asc; pure function of world state ⇒ same seed ⇒ same reservation). `AttackCompiler(funded_pool=...)` selects entities EXCLUSIVELY within the reserve and records per-tier (100/50/20%) pool funding in `last_funding_stats` + a `funded_pool_N_accounts` precondition. Eval phase executes priciest-first (A5→A4→A6→A1→A2→A3), reserves 5 fully-fundable accounts/type, reports `funding.reserved_pools` + `funding.observed_at_compile` in `baseline_eval.json` (schema v4), warns loudly when a pool can't anchor every repeat. Optional `--replenish-repeats`. REGENERATED artifact (config unchanged 1200×150×140): fingerprint STILL `292cc7f6…a162`, A5 n_fraud=20 (was 0/none pre-gate), A2 honestly still 0.00 (held-out); headline 5% PR-AUC 0.880; run-to-run deterministic (only wall-clock fields differ). |
 | 14 | Impl Phase 3 (updates.md 6.1): agentic-commerce pillar T9 (RC-1..RC-5) + PCAT + judges | suite green + `artifacts/protocol_eval.json` before/after + fp intact | ✅ DONE (2026-08-29): suite 191/191 green (164 + 27 new protocol tests). NEW pillar: `src/twin/agentic.py` (`AgenticCommerce`) deterministic sha256 Mandate signing + scoped credentials + merchant registry (mirrors `world.merchants`) + `checkout()` with policy hooks and atomic P4 budget CAS + audit events + observable `session_log`; `src/attack/protocol_attacks.py` `run_t9_case()` + `benign_checkout()` FP control, registers `protocol_structural` mechanism + `T9` attack type at import (T9 deliberately OUT of ALL/TRAINABLE/HELD_OUT axes → fingerprint untouched); `src/eval/judges.py` 5 pure deterministic judges + benign; `src/policy/pcat.py` `PCATPolicy.enforce(op)` P1 signed registry (real signature check), P2 identity-bound payout, P3 observable-channel, P4 check-then-deduct CAS, P5 pre-registered caller — live-wired to the AgenticCommerce so construction order never matters. `scripts/protocol_eval.py` → `artifacts/protocol_eval.json` (schema v1; deterministic payload): **naive 5/5 attacks land → pcat 0/5, benign FP 0/5**, per-RC attribution, fingerprint intact, verbatim §8 citations. API: `POST /api/agentic/checkout` (real lock + real enforce + real judge verdict), `GET /api/agentic/status`, `GET /api/protocol` (serves the artifact, honest fallback) — live sandbox owns its OWN WorldState so the twin/init dataset is never perturbed. RC-4 under PCAT still allows the single legit authorization (the TOCTOU overspend is what P4 refuses). |
+| 15 | Impl Phase 4 (updates.md 2.2): fit score weights + transparency | suite green + artifact renewed w/ fitted `w_*` + dashboard loads it | ✅ DONE (2026-08-29): suite 198/198 green (192 + 6 new test_weights). `DEFAULT_WEIGHTS_PATH` reconciled → `src/artifacts/structured_weights.json` (duplicate API constant removed). New `scripts/fit_weights.py`: monotone-constrained (nnls, non-negative ⇒ monotone) fit of the weighted-formula `w_*` on standardized evidence vs. deterministic targets (canonical-twin fitted-logistic P×1000 + documented 6-cell calibration grid); pure math shared via `src/scoring/weight_fit.py`. DESIGN CONVENTION: the U column enters the design NEGATED (D=[T,G,B,E,C,−U]) so the nnls coefficient IS w_u — a penalty monotone-DECREASING in U, matching the formula's `−w_u·U` (a naive +U design contradicted the formula). Artifact regenerated on the canonical config (n=8022/pos=16, schema v2) with **no wall-clock fields → byte-identical across reruns**; carries `w_fit` diagnostics (design note, per-column std, degenerate terms, reachability scale, residual, grid) EXPLAINING why a term fits to ~0 (ensemble-output collinearity on the twin) instead of hiding it. Fitted: w_t 820.63, w_e/w_c 90.12 each, w_g/w_b 0, w_u 0.86 (tiny but honest penalty; magnitude verified — raw drops by exactly w_u per unit U); reachability max raw = 1000 (all bands reachable). `predict_row` uses fitted w_e/w_c additively (seam-equal, tested); `save()` merge-preserves `w_formula`/`baseline_weights`/`w_fit` so random-seed session refits never wipe the canonical weights. API: `GET /api/structured-weights` (committed-artifact report); `/api/score` now surfaces `weights_formula` + `weights_vs_baseline`. Dashboard: new **Fitted vs Baseline Formula Weights** panel (per-term Δ, monotone pill, decline-reachability, provenance) loaded post-init. FAIL-LOUD: negative-weight v2 artifact ⇒ ValueError on load (non-monotone never silently loads). v1 artifacts (n=786) still back-compat load. |
 
 ## 6. Decisions Log (append-only, dated)
 
@@ -516,12 +517,40 @@ If a gate fails → fix before moving on.
   sandbox owns its OWN WorldState so the twin/init dataset + 191-test suite
   are never perturbed. RC-4 under PCAT intentionally still allows ONE
   legitimate authorization (that IS the remediation — no TOCTOU overspend).
+- **2026-08-29 — Fitted score weights (updates.md 2.2).** `w_*` are no longer
+  folklore constants: a monotone-constrained (non-negative nnls) fit replaces
+  hand-picking. Data = canonical-twin evidence terms (T/G/B as the ensemble
+  signals, U=|xgb−gnn|; E=C=0 honestly — a bare twin has no OSINT/sanctions/
+  campaign memory) with targets = the fitted logistic head's in-sample
+  P×1000, plus a documented 6-cell calibration grid that makes the sparse E/C
+  axes and the w_u penalty identifiable while keeping the constraint system
+  FEASIBLE (E-alone/C-alone → 250, full prior → 700, full prior + max
+  disagreement → 500, everything → 1000). The U column enters the DESIGN
+  NEGATED (D = [T, G, B, E, C, −U]) so its nnls coefficient is w_u itself
+  — a non-negative penalty monotone-DECREASING in U, byte-consistent with
+  the formula's `−w_u·U`. Standardization on REAL rows only; reachability
+  rescale pins max raw = 1000 (fixes the "sum=750 → DECLINE unreachable"
+  design bug). The honest collapse (w_g/w_b → 0, w_u → 0.86) is a DATA
+  property — ensemble outputs are collinear on this twin — not a bug: the
+  fit EXPLAINS it (`w_fit` diagnostics includes the design + per-column
+  std) and the full logistic head retains the graph/behavioral/uncertainty
+  signal. Backing that reproduction story: `scripts/fit_weights.py` is fully
+  deterministic (no wall-clock fields, double-run byte-identical). Session
+  `/api/init` refits (random seed) can never wipe the canonical fitted
+  weights (`save()` merge-preserves w_formula/baseline_weights/w_fit), so
+  the committed artifact + dashboard panel stay canonical. Fail-loud on
+  negative weights (non-monotone artifacts refuse to load); v1 artifacts
+  remain back-compat loads.
 
 ## 7. How to Run Everything (verified commands, repo root)
 
 ```powershell
-# Tests (all green as of Phase 14 gate: 191 passed)
+# Tests (all green as of Phase 15 gate: 198 passed)
 pytest tests/ -v
+
+# Fit the weighted-formula w_* (updates.md 2.2; byte-deterministic,
+# rewrites src/artifacts/structured_weights.json in place, schema v2)
+python scripts/fit_weights.py
 
 # Twin performance benchmark (writes artifacts/twin_perf.json; exit 1 if >30s)
 python scripts/bench_twin.py
@@ -606,9 +635,9 @@ P3 suite runtime ≈ 39s; live cycle ≈ 60-90s at 400 accts/60 steps.
 2. Update §4 findings statuses (OPEN→FIXED with phase ref).
 3. Update §7 with any new verified commands.
 4. Note current next-step at the top of §5.
-Next step now: **Implementation phase 3 (updates.md 6.1 — agentic-commerce
-pillar, T9 RC-1..RC-5 + PCAT P1-P5) — DONE, awaiting git commit (Phases
-0+1 `4ef2097`, 2 `5b12185`, 3 pending this session) on branch `kartik` when
-user OKs.** implementation.md phases 0-3 ✅ (suite 191/191; protocol_eval
-verdict 5/5→0/5, FP 0/5, fp intact). Next: Phase 4 (2.2 fit score weights +
-transparency), per implementation.md.
+Next step now: **Phase 4 (updates.md 2.2 — fitted score weights +
+transparency) — DONE, awaiting git commit (Phases 0+1 `4ef2097`, 2
+`5b12185`, 3 `a229ffa`, 1-3 audit `1d78ae1`, Phase 4 pending user OK) on
+branch `kartik`.** implementation.md Phase 4 ✅ (suite 198/198; fitted
+`w_*`, byte-deterministic script, `/api/structured-weights`, dashboard
+panel). Next: Phase 5 (5 SSE / live visualization), per implementation.md.
