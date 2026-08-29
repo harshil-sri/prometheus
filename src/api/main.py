@@ -36,6 +36,10 @@ from eval.harness import full_report, multi_prevalence_eval
 from api.graph import build_knowledge_graph, list_trajectories_summary, extract_node_profile
 from investigate.case_manager import CaseManager
 
+from twin.agentic import AgenticCommerce
+from policy.pcat import PCATPolicy
+from eval.judges import judge_rc as _judge_rc
+
 STRUCTURED_WEIGHTS_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "artifacts", "structured_weights.json")
@@ -61,8 +65,28 @@ DEMO_STATE = {
     "structured": None,
     "case_manager": None,
     "event_log": [],
+    "agentic": None,
     "ready": False,
 }
+
+
+def _ensure_agentic() -> Dict[str, Any]:
+    """Lazy-build the agentic-commerce demo sandbox (its OWN world) so the
+    twin's init dataset and the 164-test suite are never perturbed."""
+    if DEMO_STATE.get("agentic") is None:
+        from twin.core import WorldState
+        sandbox = AgenticCommerce(WorldState(seed=2026), seed=2026)
+        a1 = sandbox.new_agent(budget=250_000, identity="DEMO-OWNER-1")
+        sandbox.register_merchant(domain="stablerider.example", category="retail",
+                                  payout_account="WALLET_LEGIT_MAIN",
+                                  owner_identity="DEMO-OWNER-1")
+        a2 = sandbox.new_agent(budget=120_000, identity="DEMO-OWNER-2")
+        sandbox.register_merchant(domain="grocery.example", category="grocery",
+                                  payout_account="WALLET_LEGIT_GROCERY",
+                                  owner_identity="DEMO-OWNER-2")
+        pcat = PCATPolicy.for_agentic(sandbox)
+        DEMO_STATE["agentic"] = {"sandbox": sandbox, "pcat": pcat}
+    return DEMO_STATE["agentic"]
 
 
 # ---------------------------------------------------------------------------
@@ -80,6 +104,137 @@ def get_status():
         "ready": DEMO_STATE["ready"],
         "events": len(DEMO_STATE["event_log"]),
         "report": DEMO_STATE["report"] is not None,
+    }
+
+
+class AgenticCheckoutRequest(BaseModel):
+    merchant_id: str
+    amount: float
+    agent_id: str = ""
+    caller_identity: Optional[str] = None
+    defense: str = "pcat"                     # "pcat" (default) | "naive"
+    rc_class: Optional[str] = None            # RC-1..RC-5 tag for judging
+    n_authorizations: int = 1
+    leak_credential: bool = False
+    attacker_controlled_payout: Optional[str] = None
+
+
+def _judge_live(res: Dict[str, Any], req: "AgenticCheckoutRequest",
+                sandbox: AgenticCommerce) -> Optional[bool]:
+    """Reuse the REAL deterministic judges on the live decision."""
+    if not req.rc_class:
+        return None
+    budget = 0.0
+    agent = sandbox.agents.get(res.get("agent_id") or req.agent_id)
+    if agent:
+        cred = sandbox.credentials.get(agent.get("credential_id"))
+        budget = cred.get("budget", 0.0) if cred else 0.0
+    paid = sum(float(p["amount"]) for p in res.get("payments") or [])
+    pack = {
+        "rc_class": req.rc_class,
+        "defense": req.defense,
+        "allowed": bool(res.get("allowed")),
+        "p_blocks": list(res.get("p_blocks") or []),
+        "payments": list(res.get("payments") or []),
+        "paid_total": round(paid, 2),
+        "attacker_received": round(sum(
+            float(p["amount"]) for p in res.get("payments") or []
+            if p.get("to") == req.attacker_controlled_payout), 2),
+        "agent_budget": round(budget, 2),
+        "credential_leaked": bool(res.get("credential_leaked", False)),
+        "caller_registered": bool(
+            req.caller_identity in sandbox.authz_table),
+        "over_spent": bool(paid > budget),
+        "payout": res.get("payout"),
+        "attacker_payout": req.attacker_controlled_payout or "",
+    }
+    return bool(_judge_rc(req.rc_class, pack))
+
+
+@app.post("/api/agentic/checkout")
+def agentic_checkout(req: AgenticCheckoutRequest):
+    """Agentic-commerce checkout with LIVE PCAT enforcement (or a naive
+    before-state for the structural demo). Returns the REAL signed decision +
+    the official RC judge verdict — never fabricated."""
+    try:
+        st = _ensure_agentic()
+        sandbox: AgenticCommerce = st["sandbox"]
+        defense = st["pcat"] if req.defense == "pcat" else None
+        agent_id = req.agent_id or next(iter(sandbox.agents))
+        res = sandbox.checkout(
+            agent_id=agent_id,
+            merchant_id=req.merchant_id,
+            amount=req.amount,
+            defense=defense,
+            caller_identity=req.caller_identity,
+            rc_class=req.rc_class,
+            n_authorizations=req.n_authorizations,
+            leak_credential=req.leak_credential,
+            attacker_controlled_payout=req.attacker_controlled_payout,
+        )
+        judged = _judge_live(res, req, sandbox)
+        return {
+            "status": "ok",
+            "defense": req.defense,
+            "decision": res,
+            "judged_attack_success": judged,
+            "defense_note": ("gate enforced" if defense is not None else
+                             "naive/unhardened — structural gaps exposed"),
+        }
+    except Exception as e:
+        logger.exception("agentic checkout failed")
+        return {"status": "error", "detail": str(e)[:300],
+                "error_code": "AGENTIC_CHECKOUT_FAILED"}
+
+
+@app.get("/api/agentic/status")
+def agentic_status():
+    """Aggregate view of the agentic-commerce sandbox + audit events."""
+    st = _ensure_agentic()
+    sandbox = st["sandbox"]
+    leaked = sorted(c for c in sandbox.credentials
+                    if sandbox.is_credential_observed(c))
+    return {
+        "ready": True,
+        "agents": len(sandbox.agents),
+        "credentials": len(sandbox.credentials),
+        "merchants": sorted(sandbox.registry),
+        "certified_payouts": sorted(p for p, _ in st["pcat"]._certified().items()),
+        "leaked_credentials": leaked,
+        "session_log_lines": len(sandbox.session_log),
+        "world_transactions": len(sandbox.world.transactions),
+        "events": sandbox.events[-25:],
+    }
+
+
+@app.get("/api/protocol")
+def protocol_eval_status():
+    """Serve the REAL persisted T9 before/after artifact written by
+    scripts/protocol_eval.py to <project>/artifacts — never fabricated.
+    Honest fallback when the artifact is missing (same pattern as /api/ood)."""
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))))
+    path = os.path.join(project_root, "artifacts", "protocol_eval.json")
+    if not os.path.exists(path):
+        return {"present": False,
+                "note": "protocol_eval.json not generated yet — run "
+                        "scripts/protocol_eval.py."}
+    try:
+        d = json.load(open(path))
+    except Exception as exc:                     # noqa: BLE001
+        return {"present": False,
+                "note": f"protocol_eval.json unreadable: {exc}"}
+    return {
+        "present": True,
+        "schema": d.get("schema"),
+        "generated_at": d.get("generated_at"),
+        "per_rc": d.get("per_rc", {}),
+        "benign_fp_probe": d.get("benign_fp_probe", {}),
+        "holdout_fingerprint": (d.get("holdout") or {}).get("fingerprint", ""),
+        "fingerprint_intact": (d.get("holdout") or {}).get("fingerprint_intact"),
+        "agentic_payments_logged": d.get("agentic_payments_logged"),
+        "attacker_wallet_total_before": d.get("attacker_wallet_total_before"),
+        "citations": d.get("citations", []),
     }
 
 

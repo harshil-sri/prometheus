@@ -10,7 +10,7 @@ source (file:line verified, not guessed). Status column in §2 is the source of 
 - **Never resecope the holdout lock.** Fingerprint `292cc7f67639cea556948086f8303fb248249da14f45b3d4825cca8f0473a162`
   (A2/A5 held out, mechanism axis empty) is baked into `artifacts/baseline_eval.json`.
   New mechanisms/types are *registered*, not held out, in the shipped lock.
-- **Full suite must stay green at every gate.** `pytest tests/ -q` (currently 164/164).
+- **Full suite must stay green at every gate.** `pytest tests/ -q` (currently 191/191).
   Any new test failure before all-regression is a phase blocker.
 - **Fail loud, never fake.** No silent fallbacks; any fallback path is logged and
   surfaced in the artifact (matches the eval gate philosophy).
@@ -30,7 +30,7 @@ source (file:line verified, not guessed). Status column in §2 is the source of 
 | 0 | — | Baseline checkpoint & guardrails | done — verified this session: `kartik`@`9f386bb`, 155/155 green on `~/.venvs/global`, fingerprint intact | 155/155 green |
 | 1 | §7.1 | 2.1 Scoring E/C evidence + band reachability | done — 159/159 green; `w_e`/`w_c` + deterministic mappers + unified `/api/score`↔`/api/investigate` via `case_evidence_context()` | pytest + E/C tests + api consistency |
 | 2 | §7.2 | 2.3 Ring-fence funding + loud diagnostics | done — 164/164 green; `funding.py` disjoint deterministic per-type reserves, priciest-first exec, `funding` block in `baseline_eval.json` v4, fp intact | suite + regenerated artifact + double-run determinism |
-| 3 | §7.3 | 6.1 Agentic-commerce pillar (RC-1..RC-5, PCAT) | pending | pytest + protocol eval artifact |
+| 3 | §7.3 | 6.1 Agentic-commerce pillar (RC-1..RC-5, PCAT) | done — 191/191 green; T9 RC-1..RC-5 land naive / blocked 1:1 by PCAT P1-P5, deterministic judges, `protocol_eval.json` verdict (5/5 → 0/5, benign FP 0/5), fp intact | pytest + protocol eval artifact |
 | 4 | §7.4 | 2.2 Fit score weights + transparency | pending | pytest + weights artifact + panel |
 | 5 | §7.5 | 5 SSE/live visualization | pending | pytest + manual stream check |
 | 6 | §7.6 | 6.2 Diffusion-model fidelity critic | pending | pytest + fidelity artifact v2 |
@@ -141,48 +141,104 @@ A5 headline + holdout fingerprint unchanged + double-run determinism verified.
 
 ---
 
-## Phase 3 — 6.1 Agentic-commerce protocol attacks + PCAT defense (differentiator)
+## Phase 3 — 6.1 Agentic-commerce protocol attacks (T9, RC-1..RC-5) + PCAT defense
+
+> **Scope decision (this session):** ALL FIVE RC-1..RC-5 structural attack classes,
+> defended 1:1 by the full PCAT policy layer P1–P5 (mirrors updates.md §7.1's
+> "do 2-3 RCs well" guidance with a stronger target; RC-2/RC-5 are cheap additions).
 
 ### Goal
-New pillar, scoped to **RC-1 + RC-4** minimum (RC-2/3/5 optional), graded by deterministic judges,
-defended by a PCAT-style policy layer (P1–P5), reported as before/after with false-positive rate.
+A brand-new pillar a technical judge hasn't seen from other teams: protocol-level
+(STructural) agentic-commerce attacks that succeed on ANY model — modeled inside
+the twin's own agentic-checkout flow, graded by deterministic judges, defended by a
+PCAT-style policy layer, reported as an independent before/after with FP rate.
 
 ### Ground truth from source
 - **Nothing** for `T9`, `RC-*`, `PCAT`, `agentic`, `protocol_structural` exists (repo-wide grep: zero hits).
-- Attack registry: `benchmark_attacks.py` A1-A6 (amounts L138-211); mechanism registry `splits.py:48`
-  (`rule_compiler`, `shadow_pgd`; others via `register_mechanism`, L58-64); type registry `splits.py:88-93`.
-- `log_transaction` (`core.py:296-299`) unconditionally debits; no signature/identity binding concept.
-- Merchants live in `world.merchants`; no registry signature check.
-- API: `src/api/main.py` — injection/demo/init routes exist (CORS at L51); policy layer inserts after CORS.
-- Deterministic-grading ethos already matches the paper's AIP-Bench (measured, not claimed).
+- Mechanism registry is a namespace + self-registration at import (`blue/splits.py:48`,
+  `register_mechanism` L58-64; mechanism modules e.g. `attack/mechanisms/shadow_pgd.py:39` call it at import).
+  `register_attack_types()` (`splits.py:91-93`) exists but is **never called** yet (T9 will be the first).
+- Holdout fingerprint = sha256 over the *held-out sets + seed* (`splits.py:130-144`), NOT the registry →
+  registering `protocol_structural` + `T9` CANNOT change `292cc7f6…a162`.
+- `log_transaction` (`twin/core.py:254-326`) is a plain-dict writer with `mechanism`/`attack_id`/
+  `trajectory_id` params; extra keys (e.g. `rc_class`) are tolerated by downstream consumers.
+- Merchants are `world.merchants` states (`domain/category/hosting_asn/template_fingerprint`,
+  `core.py` `add_merchant`); a rogue registry entry mirrors into the twin graph naturally.
+- FastAPI app builder + CORS at `src/api/main.py:43-51` + `sys.path` bootstrap L21-22;
+  existing endpoints must NOT gain mandatory headers (would break the 164-test suite).
+
+### Module map (all new, no core.py edits)
+| Module | Responsibility |
+|---|---|
+| `src/twin/agentic.py` | `AgenticCommerce(world, seed)` coordinator: `Agent`+`Credential` (scoped budget), Mandate-style signed objects (Intent→Cart→Payment, deterministic sha256 signing), merchant `registry` (+ mirrors to `world.merchants`), `checkout()` with policy hooks, audit `events` log, observable-channel `session_log` (RC-3), atomic budget CAS |
+| `src/attack/protocol_attacks.py` | T9 RC-1..RC-5 builders + `run_t9_case(agentic, rc, defense, seed)`; `register_mechanism("protocol_structural")` + `register_attack_types({"T9"})` at import |
+| `src/eval/judges.py` | Deterministic judges (wallet-string match / regex / event-count / status-code) via `judge_case(rc, events) → verdict` (no LLM; AIP-Bench style) |
+| `src/policy/pcat.py` | `PCATPolicy.enforce(op) → (allowed, reason)` — P1 signed registry, P2 identity-bound payout, P3 channel/redirect, P4 atomic check-then-deduct (threading.Lock + CAS), P5 preregistered caller identity |
+| `scripts/protocol_eval.py` | before/after harness → `artifacts/protocol_eval.json` (per-RC success w/o vs with PCAT + benign FP rate + verbatim citations) |
+| `src/api/main.py` | + `POST /api/agentic/checkout` (PCAT-enforced, P4 lock), `GET /api/agentic/status`, `GET /api/protocol` (serves the artifact; Phase 7 panel) — existing endpoints untouched |
+| `tests/test_protocol.py` | registry wiring, per-RC before/after, benign FP, determinism, fingerprint guard |
+
+### T9 sub-case ↔ defense mapping (1:1, judge-legible)
+| RC | Attack (any model, 100% reproducible) | Judge (deterministic) | PCAT check |
+|---|---|---|---|
+| RC-1 | unsigned/forged registry entry trusted; agent checks out to attacker payout | wallet-string: payment landed at attacker payout | P1 signed-registry responses |
+| RC-2 | federation response returns attacker payout w/o identity binding | payout-string: tx reached unbound payout | P2 caller identity binding |
+| RC-3 | agent credential leaked into observable channel, replayed by attacker | regex scan of channel + replay succeeds | P3 secure channel + redirect allowlist |
+| RC-4 | two concurrent authorizations pass the check → double spend | event-count + paid_sum > budget | P4 atomic check-then-deduct |
+| RC-5 | checkout succeeds without required scope/identity | status-code: allowed despite missing scope | P5 tool-call authorization |
 
 ### Steps
-1. **Twin agentic-checkout flow** (`src/twin/`): agent entity holding a scoped payment credential;
-   Mandate-style signed objects (Intent → Cart → Payment) attached to the world; checkout commits via
-   `log_transaction` with an integrity check hook.
-2. **Attack type `T9`** registered via `register_attack_types`; spec in `benchmark_attacks.py`;
-   action sequence in compiler `_build_action_sequence` + executor; each row tagged `mechanism="protocol_structural"`,
-   **also registered** via `register_mechanism` (NOT held out — lock unchanged). Sub-cases tagged `rc_class` (RC-1..RC-5).
-   - RC-1 (unsigned registry content): rogue merchant entry with no signature check trusted by agent.
-   - RC-4 (payment TOCTOU): concurrent authorization vs one budget → double-spend.
-   - Optional: RC-2 (untrusted payment destination), RC-3 (credential in observable channel), RC-5 (authz scope not enforced).
-3. **Deterministic judges** (`src/eval/judges.py`): wallet-string match, log-pattern regex, event count, status code — no LLM judging.
-4. **PCAT policy layer** (`src/policy/pcat.py`): P1 signed responses, P2 caller-identity binding,
-   P3 secure-channel enforcement, P4 atomic payment state (asyncio.Lock / compare-and-swap around
-   check-then-deduct), P5 tool-call authorization (pre-registered identity header). Inserted after CORS at `main.py:51`
-   gating injection/demo/init endpoints.
-5. **Protocol eval** (`scripts/protocol_eval.py`): attack-success-rate before/after PCAT + FP rate on benign
-   traffic → `artifacts/protocol_eval.json`; surfaced on dashboard panel (§7).
-6. Citations kept verbatim for the `.docx` (§8 of updates.md).
+1. `src/twin/agentic.py` — Agents/Credentials (deterministic), Mandate signing (canonical-JSON + sha256,
+   ring-fenced key material), merchant registry mirror, `checkout()` (resolves registry → builds mandate →
+   policy hooks → atomic authorize → `world.log_transaction` with `mechanism="protocol_structural"`,
+   `attack_id="T9"`, `rc_class`), audit events + observable session_log.
+2. `src/attack/protocol_attacks.py` — T9 spec in `benchmark_attacks.py` (NOT added to `TRAINABLE_ATTACKS`
+   or the A1-A6 `EVAL_TYPES` — T9 is measured by its OWN protocol_eval, keeping the baseline lock meaning
+   intact); `run_t9_case()` wires each RC's prerequisite state + checkout(s); registers the new
+   mechanism + type axis members at import.
+3. `src/eval/judges.py` — 5 pure judges, dispatch by rc_class; same input ⇒ same verdict.
+4. `src/policy/pcat.py` — P1–P5; `checkout()` calls `enforce(op)` at each hook; defense=None ⇒ attacks pass,
+   defense=PCAT() ⇒ blocked. Benign flow must pass every check (FP ≈ 0 by construction).
+5. `scripts/protocol_eval.py` → artifact with per-RC before/after + benign FP + verbatim citations
+   (Louck AIP-Bench arXiv:2607.21824; Mastercard Agent Pay 2025-04-29; Visa TAP 2025; Google AP2 2025).
+6. API: `/api/agentic/checkout` (real lock, real enforce), `/api/agentic/status`, `/api/protocol`.
+7. Determinism double-run + fingerprint unchanged + full suite green.
 
 ### Tests
-- RC-1 fake registry entry caught by P1; RC-4 concurrent double-spend blocked by P4 (race test).
-- T9 rows carry `mechanism="protocol_structural"` + `rc_class`; fingerprint unchanged; no leakage.
-- Deterministic judges: same input → same verdict; FP < 2% on benign traffic in protocol_eval.
-- New mechanism present in `splits.MECHANISM_REGISTRY`.
+- Import wiring: `protocol_structural ∈ MECHANISM_REGISTRY`; `attack_type_of_tx("T9_…") == "T9"`;
+  holdout fingerprint unchanged.
+- Per-RC: no-defense ✅ captured by judge; PCAT-on ❌ blocked (5 before/after pairs).
+- RC-4 concurrency: naive impl double-spends (paid_sum > budget); P4 allows exactly one payment.
+- Benign agentic checkout: 0 blocked with defense (and `FP_rate < 2%` contract in protocol_eval).
+- Deterministic judges + same-seed artifact equality (modulo wall-clock fields).
 
 ### Gate
-Full suite green + `protocol_eval.json` produced (before/after numbers + FP rate) + fingerprint intact.
+Full suite green + `artifacts/protocol_eval.json` produced (before/after + FP rate) + fingerprint intact.
+
+### Implemented (this session)
+- `src/twin/agentic.py` — `AgenticCommerce(world, seed)`: deterministic sha256 Mandate signing
+  (canonical-JSON, ring-fenced per-instance key material), scoped `Agent`+`Credential` budgets,
+  merchant `registry` with mirror into `world.merchants`, `checkout()` with policy hooks +
+  atomic `_authorize_batch` CAS (P4), audit `events` + observable `session_log` (RC-3),
+  `is_credential_observed`, `resolve_payout` federation seam (RC-2).
+- `src/attack/protocol_attacks.py` — `run_t9_case(world, seed, rc_class, defense_builder)` +
+  `benign_checkout` FP control; `register_mechanism("protocol_structural")` +
+  `register_attack_types(["T9"])` at import (fingerprint-safe; T9 isolated). T9 spec lives in
+  `benchmark_attacks.PROTOCOL_ATTACKS`, OUT of ALL_TRAINABLE_HELDOUT sets.
+- `src/eval/judges.py` — 5 pure judges + `judge_benign`, dispatched via `register_judge`;
+  verdict is a pure function of the structural facts in the case pack.
+- `src/policy/pcat.py` — `PCATPolicy`; *live-wired* to the AgenticCommerce (`for_agentic(ac)`
+  resolves certified payouts + authz table at `enforce()` time → construction order never
+  matters). P1 verifies the signature itself; P2 certifies only signed + identity-bound
+  payouts; P5 requires a pre-registered caller identity with a matching scope subset.
+- `scripts/protocol_eval.py` → `artifacts/protocol_eval.json` (schema v1, deterministic payload):
+  **naive 5/5 → pcat 0/5, benign FP 0/5**, fingerprint intact, verbatim §8 citations.
+- API: `POST /api/agentic/checkout` (real lock + real enforce + real judge verdict),
+  `GET /api/agentic/status`, `GET /api/protocol` (serves the real artifact, honest fallback).
+  The API sandbox owns a SEPARATE WorldState — the twin/init dataset is never perturbed.
+- RC-4 semantics: under PCAT the single legitimate authorization still lands (allowed, 1 payment
+  ≤ budget); the TOCTOU overspend is what P4 refuses — the judge keys on `over_spent`.
+- Suite 164 → **191/191**; 27 new protocol tests; working tree ready to commit.
 
 ---
 
@@ -303,7 +359,7 @@ Full suite green; all artifacts regenerated & referenced; docx regenerated; run-
 ---
 
 ## Cross-cutting verification protocol
-- `pytest tests/ -q` after every phase (target 164 + new tests, exit 0).
+- `pytest tests/ -q` after every phase (target 191 + new tests, exit 0).
 - Determinism spot-check: rerun the committed eval config; artifact hashes must match (modulo regenerated_at).
 - Holdout fingerprint asserts: `artifacts/baseline_eval.json["holdout"]["fingerprint"]` stays `292cc7f6…a162`.
 - `python scripts/baseline_eval.py --help` reflects any new flags before demo.

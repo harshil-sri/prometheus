@@ -51,6 +51,36 @@ assert ALL_ATTACKS == {"A1", "A2", "A3", "A4", "A5", "A6"}, (
     f"Not all 6 attacks accounted for: {ALL_ATTACKS}"
 )
 
+# ---------------------------------------------------------------------------
+# T9 — Protocol/agentic-manipulation (updates.md 6.1)
+# ---------------------------------------------------------------------------
+# T9 is NOT a TRAINABLE_ATTACK and is deliberately kept OUT of the A1-A6
+# axes-2/3 holdout and ALL_ATTACKS sets: it lives in its own independent
+# (single-model, deterministic) "protocol_eval" story so the baseline lock
+# (fingerprint, train/eval cardinals) is bit-for-bit untouched. It uses its
+# own mechanism namespace (protocol_structural) and attack-type code T9.
+
+from blue.splits import register_attack_types as _register_t9_types
+
+_register_t9_types(["T9"])
+
+PROTOCOL_ATTACKS = {
+    "T9": {
+        "name": "Protocol / agentic-manipulation",
+        "mechanism": "protocol_structural",
+        "rc_classes": ("RC-1", "RC-2", "RC-3", "RC-4", "RC-5"),
+        "story": "Agentic-commerce checkout (Mastercard Agent Pay / Visa TAP / "
+                 "Google AP2): an LM-driven agent with a scoped payment "
+                 "credential completes checkout without a human step. "
+                 "Structural attack classes that succeed regardless of the "
+                 "model: RC-1 rogue registry entry, RC-2 blind trust of "
+                 "federation payout resolution, RC-3 credential leak via an "
+                 "observable channel, RC-4 check-vs-deduct race (TOCTOU), "
+                 "RC-5 privileged checkout tool without caller authz.",
+        "independent_eval": "scripts/protocol_eval.py -> artifacts/protocol_eval.json",
+    },
+}
+
 
 # ---------------------------------------------------------------------------
 # Attack metadata (for dashboard threat-intel cards)

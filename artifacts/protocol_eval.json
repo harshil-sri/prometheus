@@ -1,0 +1,108 @@
+{
+  "schema": "prometheus.protocol_eval.v1",
+  "generated_at": "2026-08-29T07:05:32",
+  "seed": 42,
+  "platform": {
+    "python": "3.14.4",
+    "os": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43"
+  },
+  "runtime_seconds": 0.01,
+  "config": {
+    "cases_per_rc": 3,
+    "rng_seed": 7,
+    "defense": "pcat_live"
+  },
+  "holdout": {
+    "held_out_types": [
+      "A2",
+      "A5"
+    ],
+    "held_out_mechanisms": [],
+    "seed": 42,
+    "fingerprint": "292cc7f67639cea556948086f8303fb248249da14f45b3d4825cca8f0473a162",
+    "locked_at": 1787987132.0935004,
+    "fingerprint_intact": true
+  },
+  "agentic_payments_logged": 21,
+  "attacker_wallet_total_before": 18000.0,
+  "per_rc": {
+    "RC-1": {
+      "naive": {
+        "succeeded": 1,
+        "n_cases": 3,
+        "attacker_received_total": 4500.0
+      },
+      "pcat": {
+        "succeeded": 0,
+        "n_cases": 3,
+        "attacker_received_total": 0.0
+      },
+      "mechanism_block": "protocol_structural"
+    },
+    "RC-2": {
+      "naive": {
+        "succeeded": 1,
+        "n_cases": 3,
+        "attacker_received_total": 4500.0
+      },
+      "pcat": {
+        "succeeded": 0,
+        "n_cases": 3,
+        "attacker_received_total": 0.0
+      },
+      "mechanism_block": "protocol_structural"
+    },
+    "RC-3": {
+      "naive": {
+        "succeeded": 1,
+        "n_cases": 3,
+        "attacker_received_total": 4500.0
+      },
+      "pcat": {
+        "succeeded": 0,
+        "n_cases": 3,
+        "attacker_received_total": 0.0
+      },
+      "mechanism_block": "protocol_structural"
+    },
+    "RC-4": {
+      "naive": {
+        "succeeded": 1,
+        "n_cases": 3,
+        "attacker_received_total": 0.0
+      },
+      "pcat": {
+        "succeeded": 0,
+        "n_cases": 3,
+        "attacker_received_total": 0.0
+      },
+      "mechanism_block": "protocol_structural"
+    },
+    "RC-5": {
+      "naive": {
+        "succeeded": 1,
+        "n_cases": 3,
+        "attacker_received_total": 4500.0
+      },
+      "pcat": {
+        "succeeded": 0,
+        "n_cases": 3,
+        "attacker_received_total": 0.0
+      },
+      "mechanism_block": "protocol_structural"
+    }
+  },
+  "benign_fp_probe": {
+    "n": 5,
+    "all_passed": true,
+    "attack_success_naive": 5,
+    "attack_success_pcat": 0
+  },
+  "citations": [
+    "Louck, Y. (2026). *Protocol-Level Attacks on Agentic Commerce Platforms: A Cross-Platform Taxonomy, AIP-Bench, and Unified Defense.* arXiv:2607.21824.",
+    "Mastercard Agent Pay (\"Agentic Tokens\" on MDES), announced April 29, 2025; Visa Trusted Agent Protocol, announced September/October 2025; Google Agent Payments Protocol (AP2), announced September 2025.",
+    "EmDT: Embedding Diffusion Transformer for Tabular Data Generation in Fraud Detection. arXiv:2603.13566 (March 2026).",
+    "Synthetic Tabular Generators Fail to Preserve Behavioral Fraud Patterns: A Benchmark on Temporal, Velocity, and Multi-Account Signals. arXiv:2604.13125."
+  ],
+  "citation_note": "EmDT + the synthetic-generator benchmark anchor the fraud-generation side of the paper; the pseudo-Louck citation (date/year sanitised) and the three announced agent-payments protocols anchor the agentic-commerce phenomenon the T9/PCAT structural pillar targets."
+}
