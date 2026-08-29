@@ -86,6 +86,19 @@ def main() -> int:
     args = ap.parse_args()
     t0 = time.perf_counter()
 
+    # Determinism law: pin every RNG before world construction. sdv's
+    # CTGANSynthesizer has no random_states knob — it draws from the global
+    # generators — so global seeding is what makes the whole report reproduce
+    # (the diffusion critic seeds itself; the layers use RandomState(seed)).
+    import random
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    try:
+        import torch
+        torch.manual_seed(args.seed)
+    except Exception:                                   # noqa: BLE001
+        pass
+
     # ------------------------------------------------------------- world --
     twin = FinancialDigitalTwin(seed=args.seed, num_accounts=args.accounts,
                                 num_merchants=50, num_devices=80,
@@ -152,7 +165,6 @@ def main() -> int:
         "features": len(names),
         "critic_rows": int(len(X_critic)),
         "ctgan_epochs": args.ctgan_epochs,
-        "runtime_seconds": round(time.perf_counter() - t0, 2),
         "platform": {"python": platform.python_version(),
                      "os": platform.platform(), "cpu_only": True},
         "critique_generator": f"sdv CTGANSynthesizer "

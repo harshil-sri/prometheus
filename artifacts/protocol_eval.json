@@ -1,6 +1,6 @@
 {
   "schema": "prometheus.protocol_eval.v1",
-  "generated_at": "2026-08-29T07:30:15",
+  "generated_at": "2026-08-29T11:30:10",
   "seed": 42,
   "platform": {
     "python": "3.14.4",
@@ -20,7 +20,7 @@
     "held_out_mechanisms": [],
     "seed": 42,
     "fingerprint": "292cc7f67639cea556948086f8303fb248249da14f45b3d4825cca8f0473a162",
-    "locked_at": 1787988615.8967383,
+    "locked_at": 1788003010.594705,
     "fingerprint_intact": true
   },
   "agentic_payments_logged": 21,

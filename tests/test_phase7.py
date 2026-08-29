@@ -264,5 +264,8 @@ def test_rl_stretch_endpoint_schema(panel_client):
         assert data["honest_negative"] == (not data["shipped"])
         assert data.get("episodes_run") is not None
         assert isinstance(data.get("reason"), str)
+        # registry merge must key on strategy_id (regression: manifest
+        # entries carry strategy_id, not strategy)
+        assert isinstance(data.get("registry_metrics"), dict)
     else:
         assert isinstance(data.get("note"), str)

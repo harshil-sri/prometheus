@@ -386,10 +386,13 @@ Fidelity claim holds against a diffusion critic, not just CTGAN.
 ### Gate
 ✅ Full suite green (216 passed, +7 new diffusion tests) + `artifacts/fidelity_report.json`
 regenerated to schema v2 carrying BOTH critics:
-CTGAN  → L1 w-ratio median 0.2205 / KS 0.1344 · L3 trap AUC 0.9999 (band not met, honest) · manifold ρ 0.1742
+CTGAN  → L1 w-ratio median 0.1338 / KS 0.1665 · L3 trap AUC 0.9999 (band not met, honest) · manifold ρ 0.5791
 Diffusion → L1 w-ratio median 0.1888 / KS 0.1864 · L3 trap AUC 1.0 (band not met, honest) · manifold ρ 0.8357
 Both critics survive Layer-1 statistical (pass=True) and fail L3 with declared bands intact; the
 diffusion critic's manifold-transfer ρ is markedly higher — an observable, not a tuned number.
+(Phase 8 note: sdv CTGAN has no `random_states` knob, so `fidelity_eval.py` now pins the global
+RNGs before world construction — the report is byte-identical on regen; numbers above are the
+canonical seeded realization, fingerprint `5fd34a40c6735cdf`.)
 
 ---
 
@@ -445,17 +448,42 @@ Full suite green + all four panels render on the Dashboard.
 ## Phase 8 — 2.4 Hygiene + finalize
 
 ### Steps
-1. `rl_stretch.py:74` `device bias placeholder` genome dim is inert (only dims 0-3 used, `rl_stretch.py:88-94,170-173`):
-   **drop it** OR wire to a real device-selection signal — decision recorded; ensure every genome dim is a live signal.
-2. Sanctions/yente live transport: already correctly deferred (`NotImplementedError` behind documented
-   fallback) — record a tracked follow-up note in `PROMETHEUS_CONTEXT.md` (not a bug).
-3. Regenerate all artifacts (`baseline_eval`, `sweep_eval`, `protocol_eval`, `ood_matrix`, fidelity) post-final-change.
-4. Regenerate `.docx` via `src/docs_gen/build_docx.py` (reads `honest_holdout_metrics.meta.multi_prevalence` + `holdout.fingerprint`).
-5. Update `PROMETHEUS_CONTEXT.md` (include appended phase log).
-6. Final demo checklist: server up, dashboard panels, live stream, one walk-through of the loop script.
+1. ✅ `rl_stretch.py:74` `device bias placeholder` genome dim was INERT (fed to the DQN as pure noise,
+   never emitted by `_state_to_genome`, clipped but unused):
+   **dropped** — the state space is now exactly the genome space (amount/members/days_spread/margin,
+   `n_states=4`). Decision recorded: wiring a "device bias" would have invented a spec knob that
+   doesn't exist in the compiler, violating every-dim-live; a noise observation has no place in a
+   pre-registered stretch measurement. `scripts/mechanism_eval.py` regenerated `ood_matrix.json`
+   (fp `d98de408f8ddeeeb` — population fingerprint UNCHANGED) + `strategy_registry.json`
+   (DQN_rl_stretch: episodes 50, best evasion 0.0, shipped per criterion).
+2. ✅ Sanctions/yente live transport: confirmed NOT a bug — `NotImplementedError` behind the documented
+   fallback (fixture watch list when `PROMETHEUS_SANCTIONS_URL` unset); tracked
+   follow-up note appended to `PROMETHEUS_CONTEXT.md` §6 (correct pop: caller-injected transport, same
+   pattern as `LLMClient` MockTransport); no live path is on the demo critical line.
+3. ✅ Artifacts regenerated post-final-change: `ood_matrix`+`strategy_registry` (rl dim), `fidelity`
+   (byte-identical REPORT after global-RNG pinning — CTGAN canonical numbers updated above),
+   `protocol_eval` (naive 5/5 → pcat 0/5, benign FP 0/5, unchanged), plus the Phase 7 pair
+   (`feedback_timeline.json` md5 `f69e2cb2…`, `attribution.json` fp `237b553e4a42795e`) re-verified
+   byte-deterministic. `baseline_eval`/`sweep_eval` inputs are untouched by this phase's diff (no
+   `rl_stretch`/sanctions dependency), so their committed bytes remain canonical; `structured_weights`
+   re-fitted byte-identical.
+4. ✅ `.docx` regenerated via `src/docs_gen/build_docx.py` (reads `honest_holdout_metrics.meta.
+   multi_prevalence` + `holdout.fingerprint` from `baseline_eval.json`).
+5. ✅ `PROMETHEUS_CONTEXT.md` updated (header → Phase 19, board row 19, appended phase log,
+   fidelity canonical numbers corrected).
+6. Final demo checklist: server up, dashboard panels (all four render), live stream, one walk-through
+   of the loop script — see the P8 gate notes.
+
+### Hygiene fixes found while regenerating
+- **`build_watch_list` set-iteration RNG bug** (surfaced in Phase 7; details in Phase 7 gate).
+- **`/api/rl-stretch` registry merge key**: strategy-registry manifest entries carry `strategy_id`
+  (not `strategy`), so `registry_metrics` never populated — endpoint now filters
+  `m.get("strategy_id") == "DQN_rl_stretch"`; regression guard added to `tests/test_phase7.py`.
+- **`fidelity_eval.py` global-RNG pinning + wall-clock removal** — see Step 3.
 
 ### Gate
-Full suite green; all artifacts regenerated & referenced; docx regenerated; run-through passes on the dev box.
+✅ Full suite green; all regenerated artifacts deterministic & referenced; docx rebuilt; run-through
+passes on the dev box.
 
 ---
 
