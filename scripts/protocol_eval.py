@@ -76,7 +76,7 @@ CITATION_NOTE = (
 )
 
 
-def _pcat_builder(seed_for_attacker: int) -> Callable:
+def _pcat_builder() -> Callable:
     return lambda ac: PCATPolicy.for_agentic(ac)
 
 
@@ -111,7 +111,7 @@ def evaluate(*, seed: int, rng_seed: int, cases: Optional[Dict[str, int]] = None
 
             world_p = WorldState(seed=seed)
             pack_p = run_t9_case(world_p, seed=case_seed, rc_class=rc,
-                                 defense_builder=_pcat_builder(case_seed))
+                                 defense_builder=_pcat_builder())
             rows_pcat.append(pack_p)
 
             agentic_payments += len(pack_n["payments"]) + len(pack_p["payments"])
@@ -137,9 +137,8 @@ def evaluate(*, seed: int, rng_seed: int, cases: Optional[Dict[str, int]] = None
     for i in range(5):
         world_b = WorldState(seed=seed + i)
         bag = benign_checkout(world_b, seed=rng_seed + i,
-                              defense_builder=_pcat_builder(rng_seed + i))
+                              defense_builder=_pcat_builder())
         benign_packs.append(bag)
-    fpr_rate = 0.0
     benign_ok = all(judge_benign(p) for p in benign_packs)
 
     attack_success_before = sum(per_rc[r]["naive"]["succeeded"] for r in RC_CLASSES)
