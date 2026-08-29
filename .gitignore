@@ -17,8 +17,8 @@ build/
 .idea/
 .vscode/
 
-# Secrets: allow .env and .env.example
-!.env
+# Secrets: .env is local-only (live keys); .env.example is the tracked template
+.env
 !.env.example
 
 # Local artifacts (scratch only — artifacts/ metric JSONs are committed evidence)
