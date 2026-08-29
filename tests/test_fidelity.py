@@ -186,7 +186,9 @@ def _all_keys(d, acc=None):
                            "run scripts/fidelity_eval.py --ctgan-epochs 200")
 def test_fidelity_artifact_contract():
     art = json.load(open(FID))
-    assert art["schema"] == "prometheus.fidelity_report.v1"
+    # Phase 6: additive v2 schema; v1 may still appear for unregenerated trees
+    assert art["schema"] in ("prometheus.fidelity_report.v1",
+                             "prometheus.fidelity_report.v2")
     assert len(art.get("fingerprint", "")) == 16
     layers = art["layers"]
 
@@ -210,3 +212,12 @@ def test_fidelity_artifact_contract():
                           ad["survived_band"])
     assert verdict_consistent
     assert bool(ad.get("conclusion"))
+
+    # Phase 6: when regenerated to v2, BOTH critique generators must be present
+    if art["schema"] == "prometheus.fidelity_report.v2":
+        assert {"ctgan", "diffusion"} <= set(art["critics"])
+        for name, blk in art["critics"].items():
+            for part in ("statistical", "adversarial"):
+                assert part in blk, f"critic {name} missing {part!r}"
+        # both critics were run by the same L3 band adjudication
+        assert art["meta"]["critics_ran"] == ["ctgan", "diffusion"]
