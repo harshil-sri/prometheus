@@ -10,7 +10,7 @@ source (file:line verified, not guessed). Status column in §2 is the source of 
 - **Never resecope the holdout lock.** Fingerprint `292cc7f67639cea556948086f8303fb248249da14f45b3d4825cca8f0473a162`
   (A2/A5 held out, mechanism axis empty) is baked into `artifacts/baseline_eval.json`.
   New mechanisms/types are *registered*, not held out, in the shipped lock.
-- **Full suite must stay green at every gate.** `pytest tests/ -q` (currently 155/155).
+- **Full suite must stay green at every gate.** `pytest tests/ -q` (currently 164/164).
   Any new test failure before all-regression is a phase blocker.
 - **Fail loud, never fake.** No silent fallbacks; any fallback path is logged and
   surfaced in the artifact (matches the eval gate philosophy).
@@ -29,7 +29,7 @@ source (file:line verified, not guessed). Status column in §2 is the source of 
 |---|---|---|---|---|
 | 0 | — | Baseline checkpoint & guardrails | done — verified this session: `kartik`@`9f386bb`, 155/155 green on `~/.venvs/global`, fingerprint intact | 155/155 green |
 | 1 | §7.1 | 2.1 Scoring E/C evidence + band reachability | done — 159/159 green; `w_e`/`w_c` + deterministic mappers + unified `/api/score`↔`/api/investigate` via `case_evidence_context()` | pytest + E/C tests + api consistency |
-| 2 | §7.2 | 2.3 Ring-fenced funding pools + funding diagnostics | pending | pytest + shortfall regression test |
+| 2 | §7.2 | 2.3 Ring-fence funding + loud diagnostics | done — 164/164 green; `funding.py` disjoint deterministic per-type reserves, priciest-first exec, `funding` block in `baseline_eval.json` v4, fp intact | suite + regenerated artifact + double-run determinism |
 | 3 | §7.3 | 6.1 Agentic-commerce pillar (RC-1..RC-5, PCAT) | pending | pytest + protocol eval artifact |
 | 4 | §7.4 | 2.2 Fit score weights + transparency | pending | pytest + weights artifact + panel |
 | 5 | §7.5 | 5 SSE/live visualization | pending | pytest + manual stream check |
@@ -108,25 +108,36 @@ so any seed/scale can generate its `min_eval_fraud_per_type` rows; failures beco
 - Sweep scales: 4 seeds × 3 scales, schema v3 (`baseline_eval.py:303`) / v1 (`sweep_eval.py:198`).
 
 ### Steps
-1. New module `src/eval/funding.py`: `reserve_funding(world, attack_type, amount, n_repeats, rng)` and
-   `reserve_all(world, plan, rng)` — deterministic disjoint pools at eval start; each pool sized with
-   ≥ required headroom (accounts hold ≥ amount; typology 2% headroom respected). Seeded + recorded.
-2. Compiler: `_select_entities` accepts an optional reserved pool (via `compile()` context); tiers sample
-   within the pool; member floor within pool excluding main; exhausted pool → loud `funding_fallback` flag, not silent.
-3. Clamp direct-debit actions to the same capacity rule as typologies (never overdraft; drop hop if `< 0.01`).
-4. Diagnostics in artifact: per `attack_type` add `funding: {pool_size, funded_at_100, funded_at_50, funded_at_20,
-   fallback_used, balance_before}` recorded *before* selection (additive key, schema stays v3/v1 compatible).
-5. `sweep_eval.py` inherits via `evaluate()` (no code dup). Add worst-case scale (e.g., 600×75×70, A5 first) to the sweep matrix.
-6. Regenerate `baseline_eval.json` + `sweep_eval.json` with diagnostics.
+1. New module `src/attack/funding.py`: `reserve_funding_pools(world, specs_by_type, eval_repeats, safety)`
+   → `FundingReservation{.order, .pools, .diag, .warnings}`. Deterministic disjoint pools carved from the
+   funded upper tail at eval start (rank = live balance desc + account_id asc — a pure function of the
+   world), each pool sized to `amount × eval_repeats × safety`, priciest types claim first; per-type
+   diagnostics record pool size/total balance + per-solvency-tier (100/50/20%) funding.
+2. Compiler: `AttackCompiler(funded_pool=[...])` restricts `_select_entities` EXCLUSIVELY to that reserve
+   (main + members); `last_funding_stats` records tier funding of the pool *before* selection every
+   compile; pool-aware precondition `funded_pool_N_accounts`; exhausted/thin pool → loud
+   `funding.warnings` + observed tier counts in artifact, never a silent empty selection.
+3. Eval phase reordered priciest-first (A5→A4→A6→A1→A2→A3 via `funding.order`); optional
+   `--replenish-repeats` salary twin step between repeats (default off). Direct-debit overdraft clamp
+   (plan v1 #3) DEFERRED decisional: funded-pool selection already prevents overdrafts for eval attacks,
+   and touching `log_transaction` semantics risks unrelated regressions — recorded, low value.
+4. Diagnostics in artifact: `baseline_eval.json` schema **v4** gain (additive) `funding` block:
+   `reserve_policy`, `safety`, `replenish_between_repeats`, `exec_order`, `reserved_pools` (per-type
+   ₹-quantified), `observed_at_compile` (per repeat); pool shortfall → `generation_warnings`.
+5. `sweep_eval.py` inherits via `evaluate()` kwargs (`funding_safety`, `replenish_repeats`) — no code dup.
+6. Regenerate `baseline_eval.json` on the committed 1200×150×140 config (fingerprint intact).
 
 ### Tests
-- Regression: a seed/scale previously failing on A5 now produces ≥5 A5 eval fraud rows.
-- Determinism: two runs → identical pool partition + artifact.
-- Diagnostics present per type; direct debit never pushes a balance below floor.
-- `full_report`/per-type breakdown unchanged for already-green configs.
+- Regression: legacy A5 starved-config logic exercised — new invalidation: A5 runs FIRST with ≥5 fully
+  funded anchors; regenerated artifact shows A5 n_fraud=20 on the committed config (was 0/none pre-gate).
+- Determinism: two runs → identical pool partition + artifact (double-run diff = wall-clock fields only).
+- Diagnostics present per type incl. tier counts; thin-economy pool emits a LOUD funding warning;
+  compiler never selects outside its reserve.
+- `full_report`/per-type breakdown unchanged in semantics for already-green configs.
 
 ### Gate
-Full suite green + regenerated artifacts contain `funding` diagnostics + a recorded before/after A5 headline.
+Full suite green (164/164) + regenerated artifact contains `funding` diagnostics + recorded before/after
+A5 headline + holdout fingerprint unchanged + double-run determinism verified.
 
 ---
 
@@ -292,7 +303,7 @@ Full suite green; all artifacts regenerated & referenced; docx regenerated; run-
 ---
 
 ## Cross-cutting verification protocol
-- `pytest tests/ -q` after every phase (target 155 + new tests, exit 0).
+- `pytest tests/ -q` after every phase (target 164 + new tests, exit 0).
 - Determinism spot-check: rerun the committed eval config; artifact hashes must match (modulo regenerated_at).
 - Holdout fingerprint asserts: `artifacts/baseline_eval.json["holdout"]["fingerprint"]` stays `292cc7f6…a162`.
 - `python scripts/baseline_eval.py --help` reflects any new flags before demo.

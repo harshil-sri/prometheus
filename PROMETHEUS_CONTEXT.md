@@ -3,7 +3,7 @@
 > **READ THIS FIRST in any new session.** This file is the context anchor for Project
 > Prometheus. If the context window dies, a fresh agent reads THIS file plus the code
 > and continues without losing decisions, laws, or status. It is updated at every
-> phase gate. Last updated: Phase 12 (updates.md 2.1 — E/C scoring wiring) (2026-08-29).
+> phase gate. Last updated: Phase 13 (updates.md 2.3 — ring-fenced eval funding) (2026-08-29).
 
 ---
 
@@ -155,6 +155,7 @@ If a gate fails → fix before moving on.
 | 10 | Combo attack + War-Room dashboard (SSE) + API hardening + Docker + CI | fresh-clone gate on demo-class machine | ✅ DONE (2026-08-28): 10 gate tests green (suite 151/151); `src/combo/supply_chain.py` 4-stage GenAI supply-chain combo (synthetic-id → merchant-fraud → layering → cash-out) scored at every stage by the real ensemble; `POST /api/combo` + `GET /api/stream` (SSE) added; `/api/attack-types` returns LIST (finding #9 fixed in API path); `/api/init` accepts JSON body + query params w/ sanitized errors (finding #12 fixed); dashboard patched with combo results, live stream, guardrail block log, OOD heatmap panels; `Dockerfile` (Python 3.13-slim, port 8000) + `.github/workflows/ci.yml` (pytest + bench gate). E2E smoke confirmed: combo returns full 4-stage report (0/4 stages caught on default 100×50 twin — exactly the supply-chain-blindness insight judges want to see). |
 | 11 | Freeze: .docx generation, 3 rehearsals, backup clips, submit ≤6PM IST | submission uploaded | ✅ DONE (2026-08-28): `src/docs_gen/build_docx.py` + `__init__.py` created (was missing); `Prometheus_Walkthrough.docx` rebuilt (40,262 bytes, 49 paragraphs, 4 tables, 9 sections, all numbers live from artifacts/*.json). 12/12 JSON artifacts valid. `requirements.txt` pin fixed (pandas 3.0.2→2.3.3 to match installed). Dockerfile + CI YAML verified. Fresh-clone gate PASS in `C:\Users\iamda\AppData\Local\Temp\opencode\prometheus_freshclone`: `pip install -r requirements.txt && pytest tests/` → 151/151 passed in 158s; `bench_twin.py` PASS 5.5s vs 30s budget; `build_docx.py` writes 40262b docx; `/api/init` + `/api/combo` E2E confirmed (0/4 stages caught — supply-chain blindness). Ready for final single git push. |
 | 12 | Impl Phase 1 (updates.md 2.1): wire E/C evidence into structured score | `test_investigator.py` gate + full suite green | ✅ DONE (2026-08-29): suite 159/159 green (155 + 4 new E/C tests). `compute_structured_score` + `FittedStructuredScore.predict_row` now take `external_evidence`/`campaign_evidence` with `w_e`/`w_c` in `DEFAULT_WEIGHTS` (120/80). New pure, deterministic mappers in `src/scoring/evidence_mapping.py` (sanctions max match_strength, OSINT risk-state/device-history/watch-flags, memory recurrence/3). CaseManager registers full OSINT risk fields + `external_evidence`/`campaign_evidence` evidence entries, `reason_evidence_ids` now has osint/external/campaign; `/api/score` shares `case_evidence_context()` with `/api/investigate` (single source, cannot disagree). Band-reachability gap bridged (670 REVIEW → 802 DECLINE with E/C). |
+| 13 | Impl Phase 2 (updates.md 2.3): ring-fence eval funding per attack type | suite green + artifact regenerated w/ `funding` block + fp intact | ✅ DONE (2026-08-29): suite 164/164 green (159 + 5 new funding tests). New `src/attack/funding.py`: `reserve_funding_pools()` partitions the funded upper tail into DISJOINT, deterministic per-type pools (rank = live balance desc + account_id asc; pure function of world state ⇒ same seed ⇒ same reservation). `AttackCompiler(funded_pool=...)` selects entities EXCLUSIVELY within the reserve and records per-tier (100/50/20%) pool funding in `last_funding_stats` + a `funded_pool_N_accounts` precondition. Eval phase executes priciest-first (A5→A4→A6→A1→A2→A3), reserves 5 fully-fundable accounts/type, reports `funding.reserved_pools` + `funding.observed_at_compile` in `baseline_eval.json` (schema v4), warns loudly when a pool can't anchor every repeat. Optional `--replenish-repeats`. REGENERATED artifact (config unchanged 1200×150×140): fingerprint STILL `292cc7f6…a162`, A5 n_fraud=20 (was 0/none pre-gate), A2 honestly still 0.00 (held-out); headline 5% PR-AUC 0.880; run-to-run deterministic (only wall-clock fields differ). |
 
 ## 6. Decisions Log (append-only, dated)
 
@@ -480,18 +481,40 @@ If a gate fails → fix before moving on.
   the regression suite, don't weaken it; commit-per-phase on branch `kartik`
   only when the user asks. Test-run env on this Linux box:
   `/home/kartik/.venvs/global/bin/python -m pytest tests/ -q` (py3.14 venv, CPU).
+- **2026-08-29 — Ring-fenced per-type funding pools (updates.md 2.3):** the
+  real fix for the A5 seed/scale depletion wall. Adopted: `reserve_funding_pools`
+  (new `src/attack/funding.py`) partitions the FUNDED UPPER TAIL into disjoint
+  per-type pools sized to `amount*eval_repeats*safety`, deterministic as a pure
+  function of the world (rank = live balance desc, account_id asc — no RNG of
+  its own), priciest types claim first; `AttackCompiler(funded_pool=...)`
+  restricts account selection EXCLUSIVELY to that type's reserve and records
+  pre-selection per-solvency-tier (100/50/20%) pool funding in
+  `last_funding_stats` plus a `funded_pool_N_accounts` precondition. Eval runs
+  A5→A4→A6→A1→A2→A3, reserve sizes are ₹-quantified in `artifacts/baseline_eval.
+  json` v4 `funding` block (`reserved_pools` + `observed_at_compile`), and a
+  pool that can't anchor every repeat emits a LOUD generation warning instead
+  of silently starving. `--replenish-repeats` optionally runs one salary twin
+  step between repeats (default off — keeps the delta attributable to the ring
+  fence). Verified on the committed 1200×150×140 config: A5 n_fraud=20 (was
+  0/none pre-gate), A2 held-out still honestly 0.00, headline 5% PR-AUC 0.880,
+  holdout fingerprint UNCHANGED 292cc7f6…a162, double-run diff = only wall-clock
+  fields. Fixes #1 (ordering) + #2 (ring-fence) + #5 (loud diagnostics) from
+  updates.md 2.3; #4 deepcopy-per-repeat deferred as not needed given reserves.
 
 ## 7. How to Run Everything (verified commands, repo root)
 
 ```powershell
-# Tests (all green as of Phase 3 gate: 73 passed)
+# Tests (all green as of Phase 13 gate: 164 passed)
 pytest tests/ -v
 
 # Twin performance benchmark (writes artifacts/twin_perf.json; exit 1 if >30s)
 python scripts/bench_twin.py
 
-# Honest baseline evaluation (writes artifacts/baseline_eval.json)
+# Honest baseline evaluation (writes artifacts/baseline_eval.json v4; per-type
+# ring-fenced funding pools + loud per-tier pool diagnostics, priciest first)
 python scripts/baseline_eval.py
+# Optional: run a salary/replenishment twin step between eval repeats
+python scripts/baseline_eval.py --replenish-repeats
 
 # Seed × scale robustness sweep (writes artifacts/sweep_eval.json)
 python scripts/sweep_eval.py --seeds 42 43 44 45 \
@@ -562,7 +585,8 @@ P3 suite runtime ≈ 39s; live cycle ≈ 60-90s at 400 accts/60 steps.
 2. Update §4 findings statuses (OPEN→FIXED with phase ref).
 3. Update §7 with any new verified commands.
 4. Note current next-step at the top of §5.
-Next step now: **Implementation phase 1 (updates.md 2.1 — E/C scoring wiring) —
-DONE, awaiting git commit of Phase 0/1 on branch `kartik` when user OKs.** All 11
-original phases ✅; implementation.md phases 0-1 ✅ (suite 159/159). Next: Phase 2
-(ring-fence funding), Phase 3 (agentic-commerce pillar), per implementation.md.
+Next step now: **Implementation phase 2 (updates.md 2.3 — ring-fenced eval
+funding) — DONE, awaiting git commit (Phase 0+1 already committed as 4ef2097;
+Phase 2 pending) on branch `kartik` when user OKs.** All 11 original phases ✅;
+implementation.md phases 0-2 ✅ (suite 164/164). Next: Phase 3 (agentic-commerce
+structural-vs-semantic pillar, updates.md 6.1), per implementation.md.

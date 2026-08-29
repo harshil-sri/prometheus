@@ -50,12 +50,20 @@ class AttackCompiler:
     parameter search.
     """
 
-    def __init__(self, twin: FinancialDigitalTwin, seed: int = 42):
+    def __init__(self, twin: FinancialDigitalTwin, seed: int = 42,
+                 funded_pool: Optional[List[str]] = None):
         self.twin = twin
         self.world = twin.world
         self.seed = seed
         self.rng = random.Random(seed)
         self.rl_agent = RLAgent(state_dim=3, action_dim=4, seed=seed)
+        # Optional ring-fence: when set, entity selection draws accounts ONLY
+        # from this pool (updates.md 2.3). None keeps the historical global
+        # selection (training phase, live demo, etc.).
+        self.funded_pool: Optional[List[str]] = funded_pool
+        # Loud funding diagnostics from the most recent compile (eval-phase
+        # funded-pool size per solvency tier before selection).
+        self.last_funding_stats: Optional[Dict[str, Any]] = None
 
     def benchmark_spec(self, attack_id: str) -> Dict[str, Any]:
         """Fetch the benchmark spec dict for an attack ID."""
@@ -518,6 +526,12 @@ class AttackCompiler:
         if len(world.accounts) >= n_accounts_needed:
             preconditions.append(f"at_least_{n_accounts_needed}_accounts")
 
+        # Ring-fence visibility (updates.md 2.3): a configured funded pool is
+        # reported by size so a too-thin reserve shows up in preconditions.
+        if self.funded_pool is not None:
+            preconditions.append(
+                f"funded_pool_{len(self.funded_pool)}_accounts")
+
         # Check we have enough balance in the system
         total_balance = sum(
             a.balance for a in world.accounts.values()
@@ -557,15 +571,25 @@ class AttackCompiler:
         n_accounts = spec.resources.get("accounts", 5)
         n_devices = spec.resources.get("devices", 2)
 
-        all_accounts = list(world.accounts.keys())
-        all_merchants = list(world.merchants.keys()) if world.merchants else []
-
         # Funding-aware entity selection: attack plans execute under a
         # solvency clamp (a sender can never overdraw), so a broke main
         # account silently produces ZERO transactions (the A5 scatter_gather
         # failure). Prefer entities that can actually fund the plan; fall
         # back to the full pool only when the economy is too thin — the
         # typology clamp then degrades gracefully instead of breaking eval.
+        #
+        # Ring-fence (updates.md 2.3): when a funded_pool is configured,
+        # selection is EXCLUSIVELY within it. The eval phase reserves one
+        # disjoint, funded per-type pool per attack so cross-attack-type
+        # depletion cannot starve a later type's principal.
+        if self.funded_pool is None:
+            all_accounts = list(world.accounts.keys())
+        else:
+            _in = set(self.funded_pool)
+            all_accounts = [a for a in world.accounts.keys() if a in _in]
+        all_merchants = (list(world.merchants.keys())
+                         if world.merchants else [])
+
         def _funded(min_balance: float) -> List[str]:
             return [a for a in all_accounts
                     if world.accounts[a].balance >= min_balance]
@@ -612,6 +636,27 @@ class AttackCompiler:
         # Select IP
         all_ips = list(world.ips.keys())
         ip = rng.choice(all_ips) if all_ips else None
+
+        # Loud funding diagnostics: funded-pool size per solvency tier BEFORE
+        # selection, read by the eval phase (updates.md 2.3 #5). With a ring
+        # fence this is the reserved pool; without one, the whole economy.
+        if amount > 0.0:
+            tier_100 = sum(1 for a in all_accounts
+                           if world.accounts[a].balance >= amount)
+            tier_50 = sum(1 for a in all_accounts
+                          if world.accounts[a].balance >= amount * 0.5)
+            tier_20 = sum(1 for a in all_accounts
+                          if world.accounts[a].balance >= amount * 0.2)
+        else:
+            tier_100 = tier_50 = tier_20 = len(all_accounts)
+        self.last_funding_stats = {
+            "pool_n": len(all_accounts),
+            "total_balance": round(sum(
+                world.accounts[a].balance for a in all_accounts), 2),
+            "tier_100": tier_100,
+            "tier_50": tier_50,
+            "tier_20": tier_20,
+        }
 
         return {
             "main_account": main_account,
