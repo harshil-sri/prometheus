@@ -190,8 +190,13 @@ def _attempts_llm_strategist(victim, compiler_of_twin, twin,
         base_spec["origin_provenance"] = sv.origin     # rides into trajectory spec
         plan = compiler_of_twin.compile(base_spec)
         traj_id = compiler_of_twin.execute(plan, twin.world)
-        out.extend([t for t in twin.world.transactions
-                    if t.get("trajectory_id") == traj_id])
+        rows = [t for t in twin.world.transactions
+                if t.get("trajectory_id") == traj_id]
+        # The unified compiler path tags rows rule_compiler; restore the true
+        # generator provenance so mechanism-OOD rows stay honest.
+        for _r in rows:
+            _r["mechanism"] = "llm_strategist"
+        out.extend(rows)
     return out
 
 

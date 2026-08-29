@@ -1,0 +1,117 @@
+{
+  "schema": "prometheus.attribution.v1",
+  "threshold": 0.5,
+  "seed": 42,
+  "caught_attributed": 64,
+  "mechanisms": [
+    "rule_compiler",
+    "shadow_pgd",
+    "llm_strategist",
+    "genetic",
+    "other"
+  ],
+  "sources": [
+    "XGB",
+    "GNN",
+    "OSINT",
+    "sanctions"
+  ],
+  "matrix": {
+    "rule_compiler": {
+      "XGB": 26,
+      "GNN": 18,
+      "OSINT": 32,
+      "sanctions": 8
+    },
+    "shadow_pgd": {
+      "XGB": 6,
+      "GNN": 4,
+      "OSINT": 5,
+      "sanctions": 0
+    },
+    "llm_strategist": {
+      "XGB": 8,
+      "GNN": 5,
+      "OSINT": 12,
+      "sanctions": 1
+    },
+    "genetic": {
+      "XGB": 3,
+      "GNN": 3,
+      "OSINT": 5,
+      "sanctions": 1
+    },
+    "other": {
+      "XGB": 2,
+      "GNN": 0,
+      "OSINT": 4,
+      "sanctions": 0
+    }
+  },
+  "margins": {
+    "rule_compiler": 33,
+    "shadow_pgd": 7,
+    "llm_strategist": 12,
+    "genetic": 8,
+    "other": 4
+  },
+  "rates": {
+    "rule_compiler": {
+      "XGB": 0.7879,
+      "GNN": 0.5455,
+      "OSINT": 0.9697,
+      "sanctions": 0.2424
+    },
+    "shadow_pgd": {
+      "XGB": 0.8571,
+      "GNN": 0.5714,
+      "OSINT": 0.7143,
+      "sanctions": 0.0
+    },
+    "llm_strategist": {
+      "XGB": 0.6667,
+      "GNN": 0.4167,
+      "OSINT": 1.0,
+      "sanctions": 0.0833
+    },
+    "genetic": {
+      "XGB": 0.375,
+      "GNN": 0.375,
+      "OSINT": 0.625,
+      "sanctions": 0.125
+    },
+    "other": {
+      "XGB": 0.5,
+      "GNN": 0.0,
+      "OSINT": 1.0,
+      "sanctions": 0.0
+    }
+  },
+  "worlds": {
+    "twin": {
+      "caught_attributed": 64,
+      "mechanisms": [
+        "rule_compiler",
+        "shadow_pgd",
+        "llm_strategist",
+        "genetic",
+        "other"
+      ],
+      "fingerprint": "bc943950f02594ce"
+    },
+    "agentic": {
+      "caught_attributed": 0,
+      "mechanisms": [],
+      "fingerprint": "66a3de72d628a807"
+    }
+  },
+  "fingerprint": "237b553e4a42795e",
+  "generator": "scripts/attribution_eval.py (seed=42, accounts=140, steps=35, k_per_cell=1)",
+  "platform": {
+    "python": "3.14.4",
+    "os": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "cpu_only": true
+  },
+  "note": "cell = number of CAUGHT attacks (ensemble score>=0.5) whose sender also triggered that evidence source; OSINT/sanctions are per-account flags from the CaseManager fixture providers, so coverage follows real fixture reach. protocol_structural rows come from the PCAT-naive agentic world, scored by the same ensemble.",
+  "ood_fingerprint": "c6ad5752a7f485fd"
+}

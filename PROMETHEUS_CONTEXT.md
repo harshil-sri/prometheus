@@ -3,7 +3,7 @@
 > **READ THIS FIRST in any new session.** This file is the context anchor for Project
 > Prometheus. If the context window dies, a fresh agent reads THIS file plus the code
 > and continues without losing decisions, laws, or status. It is updated at every
-> phase gate. Last updated: Phase 17 (updates.md 6.2 — diffusion-model fidelity critic) (2026-08-29).
+> phase gate. Last updated: Phase 18 (updates.md 6.3 — 3 standout panels) (2026-08-29).
 
 ---
 
@@ -160,6 +160,7 @@ If a gate fails → fix before moving on.
 | 15 | Impl Phase 4 (updates.md 2.2): fit score weights + transparency | suite green + artifact renewed w/ fitted `w_*` + dashboard loads it | ✅ DONE (2026-08-29): suite 198/198 green (192 + 6 new test_weights). `DEFAULT_WEIGHTS_PATH` reconciled → `src/artifacts/structured_weights.json` (duplicate API constant removed). New `scripts/fit_weights.py`: monotone-constrained (nnls, non-negative ⇒ monotone) fit of the weighted-formula `w_*` on standardized evidence vs. deterministic targets (canonical-twin fitted-logistic P×1000 + documented 6-cell calibration grid); pure math shared via `src/scoring/weight_fit.py`. DESIGN CONVENTION: the U column enters the design NEGATED (D=[T,G,B,E,C,−U]) so the nnls coefficient IS w_u — a penalty monotone-DECREASING in U, matching the formula's `−w_u·U` (a naive +U design contradicted the formula). Artifact regenerated on the canonical config (n=8022/pos=16, schema v2) with **no wall-clock fields → byte-identical across reruns**; carries `w_fit` diagnostics (design note, per-column std, degenerate terms, reachability scale, residual, grid) EXPLAINING why a term fits to ~0 (ensemble-output collinearity on the twin) instead of hiding it. Fitted: w_t 820.63, w_e/w_c 90.12 each, w_g/w_b 0, w_u 0.86 (tiny but honest penalty; magnitude verified — raw drops by exactly w_u per unit U); reachability max raw = 1000 (all bands reachable). `predict_row` uses fitted w_e/w_c additively (seam-equal, tested); `save()` merge-preserves `w_formula`/`baseline_weights`/`w_fit` so random-seed session refits never wipe the canonical weights. API: `GET /api/structured-weights` (committed-artifact report); `/api/score` now surfaces `weights_formula` + `weights_vs_baseline`. Dashboard: new **Fitted vs Baseline Formula Weights** panel (per-term Δ, monotone pill, decline-reachability, provenance) loaded post-init. FAIL-LOUD: negative-weight v2 artifact ⇒ ValueError on load (non-monotone never silently loads). v1 artifacts (n=786) still back-compat load. |
 | 16 | Impl Phase 5 (updates.md 5): SSE fan-out + live dashboard | suite green + live stream probe (single producer → N viewers) | ✅ DONE (2026-08-29): suite 209/209 green (199 + 10 new test_events). New `src/api/events.py` `EventHub`: asyncio.Queue fan-out, thread-safe `publish()` (loop.call_soon_threadsafe — FastAPI threadpool endpoints can broadcast), late-joiner snapshot seeded on subscribe (`clear_snapshot()` on a brand-new run so reconnects never replay a stale `done`), bounded queues with drop-oldest so one stalled HTML stream cannot back-pressure the loop, pre-bind publishes remembered. `/api/stream` went from a per-client inline generator (each tab raced its own 30-step sim over the same world) to ONE producer task guarded by `stream_running` under a per-event-loop `asyncio.Lock`; endpoint subscribes to the hub, contract unchanged (`retry: 1000`, `data:` JSON, 15s `: heartbeat`, client `done` break, pre-init `error` frame). Publishers added on `/api/init` (init), `/api/stream/inject` (inject), `/api/combo` (combo+summary). Dashboard: live `Step n/30 · peak · caught` tally in `streamStatus`, terminal handles init/inject/combo frames, and `checkStatus()` now calls `renderOODHeatmap()` — the Mechanism × Type matrix finally re-renders after a page reload (long-standing gap). Live-stream probe verified via TestClient: init→snapshot seed→30 steps+done fan out; `test_phase10.py` first-event whitelist extended to the hub types. Docs: implementation.md Phase 5 ✅. Commit `0001166` on `kartik`; user pushes. |
 | 17 | Impl Phase 6 (updates.md 6.2): diffusion-model fidelity critic | suite green + `fidelity` artifact containing both critics (v2) | ✅ DONE (2026-08-29): suite 216/216 green (209 + 7 new test_fidelity_diffusion). New `src/eval/diffusion_tab.py` `TabDiffusionCritic`: small Gaussian DDPM (Ho et al. linear betas 1e-4→0.02, reverse `x_{t-1} = (x_t − β_t/√(1−ᾱ)·ε_θ)/√α + σz`), single MLP denoiser + sinusoidal time embeddings — EmDT-aligned (arXiv:2603.13566) but scaled down (no UMAP/transformer) since it's a critique generator, CPU-friendly, deterministic per seed (torch+numpy reseeded in __init__, single thread, seeded generators ⇒ byte-identical rows, gated in-suite). `scripts/fidelity_eval.py` now trains BOTH critique generators on the same real-normal slice — sdv CTGAN (unchanged) + diffusion (`--diffusion-*` knobs, `--skip-diffusion` keeps v1) — and feeds both through the SAME L1/L3 critics (same [0.45,0.72] band). `build_fidelity_report(..., critics=None)` bumps schema ADDITIVELY to v2 with a `critics` block ({ctgan, diffusion} = generator + L1 + L3, diffusion incl. train diagnostics) while v1 `layers` is kept verbatim; report `meta["citations"]` carries the two papers VERBATIM (EmDT 2603.13566; behavioral-fidelity benchmark 2604.13125). Regenerated artifact v2: CTGAN L1 w_ratio_med 0.2205/KS 0.1344 · L3 trap AUC 0.9999 (band not met, honest), manifold ρ 0.1742; Diffusion L1 w_ratio_med 0.1888/KS 0.1864 · L3 trap AUC 1.0 (band not met, honest), manifold ρ 0.8357 — both survive L1 (all_statistical_flags_passed=True), both honestly fail L3. Docs: implementation.md Phase 6 ✅. Committed `406aea6` on `kartik`; user pushes. |
+| 18 | Impl Phase 7 (updates.md 6.3): 3 standout panels | suite green + all four panels render on Dashboard (timeline / RL kill-criterion / attribution / fitted-weights) | ✅ DONE (2026-08-29): suite 230/230 green (216 + 14 new test_phase7). **Panel 1 — Blind-Spot timeline:** `src/feedback/timeline.py` `FeedbackTimeline` append-only file store (cap 30, atomic tmp+replace, NO wall-clock fields) + `summarize_cycle()`; `scripts/timeline_eval.py` (RNG-pinned, default 600×60×4) → `artifacts/feedback_timeline.json` **byte-identical across re-runs**: 4 cycles, idx0 0.375→1.0 blind_spot=relational camouflage, idx1 0.875→1.0, idx2/3 clean; each live `/api/demo/run` appends its own cycle (`/api/timeline` serves all). **Panel 2 — RL negative-result:** `/api/rl-stretch` serves the REAL `rl_stretch` block with honest semantics (`honest_negative = not shipped`), criteria + registry metrics. **Panel 3 — Mechanism × evidence-source attribution:** `src/eval/attribution.py` (`build_attribution_matrix`, `combine_matrices`, `mechanism_label`; sources XGB/GNN/OSINT/sanctions) + `CaseManager.evidence_flags_for()` (same fixture dossiers + sanctions agent as the case path) + deterministic `scripts/attribution_eval.py` → `artifacts/attribution.json` fp `237b553e4a42795e`: rule_compiler 33 · shadow_pgd 7 · llm_strategist 12 · genetic 8 · other 4 (untagged held-out A5) · **protocol_structural 0 caught — honest zero** (agentic world); live matrix recomputed from the session twin+agentic worlds on every call. OOD `_attempts_llm_strategist` rows post-tagged `mechanism="llm_strategist"` (compiler.execute overrides to rule_compiler). **Hygiene fix surfaced by determinism gate:** `build_watch_list` (sanctions.py) drew its seeded RNG while iterating a SET → hit membership depended on per-process hash order (PYTHONHASHSEED); now sorts BEFORE filtering — canonical, cross-process byte-identical, regression-tested. **Panel 4 (fitted weights)** already on dashboard; `fit_weights.py` re-ran byte-identical. Docs: implementation.md Phase 7 ✅; commit follows. |
 
 ## 6. Decisions Log (append-only, dated)
 
@@ -589,11 +590,40 @@ negative weights (non-monotone artifacts refuse to load); v1 artifacts
   caught` tally + init/inject/combo terminal frames + the OOD-heatmap
   after-reload render (the `checkStatus()` gap from the old Phase 5 ground
   truth).
+- **2026-08-29 — Standout panels (updates.md 6.3).** Four dashboard panels,
+  three new. (1) Blind-Spot timeline as a FILE-BACKED append-only store
+  (`src/feedback/timeline.py`) rather than a session-memory list: the committed
+  `scripts/timeline_eval.py` baseline rows and every live `/api/demo/run` cycle
+  share one schema (`prometheus.feedback_timeline.v1`, cap 30, atomic
+  tmp+replace, NO wall-clock fields → byte-identical on regen). Seeding both
+  `random` and `np.random` (and torch) at script entry is now a fixed pattern
+  for every artifact generator. (2) RL panel serves the REAL `rl_stretch`
+  verdict with `honest_negative = not shipped` — the panel never re-derives or
+  fabricates a criterion. (3) Attribution matrix (`src/eval/attribution.py`):
+  caught attacks attributed by COMPILED-IN `mechanism` tag × evidence source.
+  Two honesty rules: the compiler's `mechanism="rule_compiler"` override on
+  execute is redressed ONLY at generation time (OOD llm-strategist rows
+  re-tagged in `_attempts_llm_strategist`) so attribution never mislabels a
+  generator it actually ran; and untagged rows land in a visible `other` bucket
+  instead of being swept into a mechanism. `protocol_structural` scoring 0
+  caught on the agentic world is reported as an honest zero in the panel note,
+  NOT patched to show a row.
+- **2026-08-29 — Canonical-order fix in `build_watch_list` (sanctions.py).**
+  Bind-diagnosed during Phase 7 determinism work: the seeded RNG draws were
+  consumed while iterating a SET (`sorted(n for n in names if rng.random() <
+  hit_ratio)`), so WHICH names got WHICH draws depended on per-process hash
+  order (PYTHONHASHSEED) — sanctions hits could differ run-to-run even with
+  the same seed, silently affecting case flags, OSCAR context, and any matrix
+  using sanctions. Fix: sort the name stream BEFORE filtering, so RNG draws
+  bind to a canonical order; watch lists are now cross-process byte-identical.
+  This was a correctness (not just reproducibility) bug in a legal surface —
+  screen outcomes must not flake by process. Noted here so no one "optimizes"
+  the set back into the loop.
 
 ## 7. How to Run Everything (verified commands, repo root)
 
 ```powershell
-# Tests (all green as of Phase 17 gate: 216 passed)
+# Tests (all green as of Phase 18 gate: 230 passed)
 pytest tests/ -v
 
 # Fit the weighted-formula w_* (updates.md 2.2; byte-deterministic,
@@ -636,6 +666,15 @@ python scripts/signals_eval.py
 #   citations verbatim in meta.citations)
 python scripts/fidelity_eval.py --ctgan-epochs 200
 #   CTGAN+diffusion both evaluated; --skip-diffusion reverts to v1 single critic
+
+# Blind-spot timeline (Phase 7; seed-pinned RNGs, byte-identical re-runs;
+#   writes artifacts/feedback_timeline.json — 4 deterministic cycles)
+python scripts/timeline_eval.py
+#   --cycles/--accounts/--steps/--gnn-epochs; each live /api/demo/run appends
+
+# Mechanism × evidence-source attribution exhibit (Phase 7; deterministic,
+#   writes artifacts/attribution.json — fp stable across re-runs)
+python scripts/attribution_eval.py
 
 # Feasibility battery: margins + latency + INR cost + drift PSI
 #   (writes artifacts/{margins,latency,cost_model,drift}.json)
