@@ -3,7 +3,7 @@
 > **READ THIS FIRST in any new session.** This file is the context anchor for Project
 > Prometheus. If the context window dies, a fresh agent reads THIS file plus the code
 > and continues without losing decisions, laws, or status. It is updated at every
-> phase gate. Last updated: Phase 11 freeze + eval-robustness gate (2026-08-28).
+> phase gate. Last updated: Phase 12 (updates.md 2.1 — E/C scoring wiring) (2026-08-29).
 
 ---
 
@@ -154,6 +154,7 @@ If a gate fails → fix before moving on.
 | 9 | Margins distribution, latency, INR cost, drift PSI | 4 artifacts | ✅ DONE (2026-08-27): 12 gate tests green (suite 141/141); margins.json (10 replay candidates, all caught at small scale — honest), latency.json (fast 11.7ms / deep-case 27.3ms p50), cost_model.json (measured points @0.5%/2% prevalence + 3-variant sensitivity), drift.json (organic-vs-attack-induced PSI gap w/ clock-column caveat) |
 | 10 | Combo attack + War-Room dashboard (SSE) + API hardening + Docker + CI | fresh-clone gate on demo-class machine | ✅ DONE (2026-08-28): 10 gate tests green (suite 151/151); `src/combo/supply_chain.py` 4-stage GenAI supply-chain combo (synthetic-id → merchant-fraud → layering → cash-out) scored at every stage by the real ensemble; `POST /api/combo` + `GET /api/stream` (SSE) added; `/api/attack-types` returns LIST (finding #9 fixed in API path); `/api/init` accepts JSON body + query params w/ sanitized errors (finding #12 fixed); dashboard patched with combo results, live stream, guardrail block log, OOD heatmap panels; `Dockerfile` (Python 3.13-slim, port 8000) + `.github/workflows/ci.yml` (pytest + bench gate). E2E smoke confirmed: combo returns full 4-stage report (0/4 stages caught on default 100×50 twin — exactly the supply-chain-blindness insight judges want to see). |
 | 11 | Freeze: .docx generation, 3 rehearsals, backup clips, submit ≤6PM IST | submission uploaded | ✅ DONE (2026-08-28): `src/docs_gen/build_docx.py` + `__init__.py` created (was missing); `Prometheus_Walkthrough.docx` rebuilt (40,262 bytes, 49 paragraphs, 4 tables, 9 sections, all numbers live from artifacts/*.json). 12/12 JSON artifacts valid. `requirements.txt` pin fixed (pandas 3.0.2→2.3.3 to match installed). Dockerfile + CI YAML verified. Fresh-clone gate PASS in `C:\Users\iamda\AppData\Local\Temp\opencode\prometheus_freshclone`: `pip install -r requirements.txt && pytest tests/` → 151/151 passed in 158s; `bench_twin.py` PASS 5.5s vs 30s budget; `build_docx.py` writes 40262b docx; `/api/init` + `/api/combo` E2E confirmed (0/4 stages caught — supply-chain blindness). Ready for final single git push. |
+| 12 | Impl Phase 1 (updates.md 2.1): wire E/C evidence into structured score | `test_investigator.py` gate + full suite green | ✅ DONE (2026-08-29): suite 159/159 green (155 + 4 new E/C tests). `compute_structured_score` + `FittedStructuredScore.predict_row` now take `external_evidence`/`campaign_evidence` with `w_e`/`w_c` in `DEFAULT_WEIGHTS` (120/80). New pure, deterministic mappers in `src/scoring/evidence_mapping.py` (sanctions max match_strength, OSINT risk-state/device-history/watch-flags, memory recurrence/3). CaseManager registers full OSINT risk fields + `external_evidence`/`campaign_evidence` evidence entries, `reason_evidence_ids` now has osint/external/campaign; `/api/score` shares `case_evidence_context()` with `/api/investigate` (single source, cannot disagree). Band-reachability gap bridged (670 REVIEW → 802 DECLINE with E/C). |
 
 ## 6. Decisions Log (append-only, dated)
 
@@ -443,7 +444,7 @@ If a gate fails → fix before moving on.
   A6 1.00. A5's 1.00 is legitimate zero-shot generalization (40 real rows
   per run; large-amount + burst features) — BEFORE the gate A5 ranged
   0.00/none. Two-axis fingerprint UNCHANGED (292cc7f6…a162). Don't inflate.
-- **2026-08-28 — Knowledge Graph & Flywheel Calibration:** (a) `src/api/graph.py`
+- **2026-08-28 — Knowledge Graph & Flywheel Calibration:**   (a) `src/api/graph.py`
   provides `build_knowledge_graph` (typed entity nodes: accounts, customers,
   merchants, devices, IPs, wallets; multi-relational edges: TRANSACTION,
   OWNED_BY, USES_DEVICE, USES_IP, HAS_WALLET; GNN node risk scores mapped to
@@ -459,6 +460,26 @@ If a gate fails → fix before moving on.
   on evasion variants, triggering the Sensitivity Engine weakness diagnosis and
   resulting in 100% in Beat 2 and 50% generalization in Beat 3; `score` key added
   alongside `recall` to eliminate `NaN%` in UI.
+- **2026-08-29 — E/C evidence wired into the structured score (updates.md 2.1):**
+  the plan's formula `R = w_t·T + w_g·G + w_b·B + w_e·E + w_c·C − w_u·U` is now
+  real. Decision: E and C are computed by PURE deterministic mappers
+  (`src/scoring/evidence_mapping.py`) so the deep path never invents evidence:
+  E = max(sanctions max match_strength, OSINT risk-state/device-history/watch-flag
+  fold), C = memory recurrence/3 (repeat campaign fingerprints, recurrence ≥2
+  contributes). The fitted ML prior fills the T/G/B slots and E/C are added
+  linearly with `DEFAULT_WEIGHTS` `w_e=120`/`w_c=80` then clamped to [0,1000].
+  Decision: the two score paths are unified through
+  `CaseManager.case_evidence_context()` — `/api/score` and `/api/investigate`
+  derive identical inputs and cannot disagree (verified by test). This also
+  bridges the band-reachability gap (all-ML max ~670 REVIEW → 802 DECLINE with
+  E/C). Caveat: `w_e`/`w_c` are hand-set defaults until Phase 4 fits them.
+- **2026-08-29 — implementation.md adopted as the live phase plan:** a
+  companion to updates.md with 8 phases (0 baseline … 8 hygiene/finalize), each
+  gated on full-suite green + artifact regeneration + CONTEXT update. Hard
+  constraints: holdout fingerprint 292cc7f6…a162 must NEVER be rescoped; grow
+  the regression suite, don't weaken it; commit-per-phase on branch `kartik`
+  only when the user asks. Test-run env on this Linux box:
+  `/home/kartik/.venvs/global/bin/python -m pytest tests/ -q` (py3.14 venv, CPU).
 
 ## 7. How to Run Everything (verified commands, repo root)
 
@@ -541,6 +562,7 @@ P3 suite runtime ≈ 39s; live cycle ≈ 60-90s at 400 accts/60 steps.
 2. Update §4 findings statuses (OPEN→FIXED with phase ref).
 3. Update §7 with any new verified commands.
 4. Note current next-step at the top of §5.
-Next step now: **single final git commit + push (when user OKs)**. All 11 phases ✅.
-Fresh-clone gate green (151/151, 158s). `Prometheus_Walkthrough.docx` (40 KB)
-auto-pulls from artifacts. Submission-ready.
+Next step now: **Implementation phase 1 (updates.md 2.1 — E/C scoring wiring) —
+DONE, awaiting git commit of Phase 0/1 on branch `kartik` when user OKs.** All 11
+original phases ✅; implementation.md phases 0-1 ✅ (suite 159/159). Next: Phase 2
+(ring-fence funding), Phase 3 (agentic-commerce pillar), per implementation.md.

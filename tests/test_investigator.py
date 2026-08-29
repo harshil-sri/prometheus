@@ -17,6 +17,11 @@ Gate requirements from PROMETHEUS_CONTEXT.md §5 (Phase 8):
   F. FittedStructuredScore: monotone in every signal, persisted weights load
      back identically, counterfactual present below REVIEW threshold;
      /api/score path switches to honest columns.
+  G. E/C evidence wiring (2.1): deterministic sanctions/OSINT → E and
+     memory-recurrence → C mappers are bounded and pure; w_e/w_c terms exist
+     and bridge band reachability; the fitted scorer blends E/C without
+     changing default behavior; a live case registers external/campaign
+     evidence and /api/score derives the SAME context as /api/investigate.
 """
 
 from __future__ import annotations
@@ -49,6 +54,10 @@ from investigate.case_manager import CaseManager, DelegateBudgetExceeded
 from scoring.structured_score import (
     FittedStructuredScore, SCORE_COLUMNS,
 )
+from scoring.evidence_mapping import (
+    sanctions_evidence, osint_evidence, external_evidence, campaign_evidence,
+)
+from scoring import DEFAULT_WEIGHTS
 from twin.twin import FinancialDigitalTwin                       # noqa: E402
 from attack.compiler import AttackCompiler                        # noqa: E402
 from attack.benchmark_attacks import generate_training_attacks    # noqa: E402
@@ -351,3 +360,125 @@ def test_case_run_with_live_structured_pipeline(rig):
     assert sc and 0 <= sc["score"] <= 1000
     assert sc["band"] in ("APPROVE", "REVIEW", "DECLINE")
     assert sc["reason_evidence_ids"]["fast_signals"]
+
+
+# ---------------------------------------------------------------------------
+# G. E/C evidence wiring (updates.md 2.1)
+# ---------------------------------------------------------------------------
+
+def test_evidence_mappers_bounded_and_pure():
+    scr_hit = [{"result": "WATCH_HIT",
+                "hit": {"match_strength": 0.87}},
+               {"result": "CLEAR", "hit": None}]
+    scr_clean = [{"result": "CLEAR", "hit": None}]
+    assert sanctions_evidence(scr_hit) == 0.87
+    assert sanctions_evidence(scr_clean) == 0.0
+    assert sanctions_evidence(scr_hit * 100) == 0.87     # max dominates
+
+    dossiers = [
+        {"risk_state_at_enrichment": "elevated",
+         "device_history": {"distinct_devices": 2}, "watch_flags": None},
+        {"risk_state_at_enrichment": "normal",
+         "device_history": {"distinct_devices": 9}, "watch_flags": None},
+    ]
+    assert osint_evidence(dossiers) == 1.0                # 9/8 → 1.0
+    assert osint_evidence([{"risk_state_at_enrichment": "normal",
+                            "device_history": {"distinct_devices": 2}}]) == 0.0
+    assert external_evidence(dossiers, scr_clean) == 1.0  # osint side maxes
+    assert external_evidence([], scr_clean) == 0.0
+
+    sigs = {"a:1": {"recurrence": 1}, "b:2": {"recurrence": 2}}
+    assert campaign_evidence(sigs) == round(2 / 3.0, 4)
+    assert campaign_evidence({"a:1": {"recurrence": 1}}) == 0.0
+    assert campaign_evidence({"a:1": {"recurrence": 9}}) == 1.0
+
+    # purity: calling twice on identical inputs yields identical outputs
+    assert campaign_evidence(sigs) == campaign_evidence(dict(sigs))
+    assert osint_evidence(dossiers) == osint_evidence(list(dossiers))
+
+
+def test_compute_structured_score_has_ec_terms_and_bridges_bands():
+    from scoring import compute_structured_score
+    assert set(DEFAULT_WEIGHTS) >= {"w_e", "w_c"}
+    assert DEFAULT_WEIGHTS["w_e"] > 0 and DEFAULT_WEIGHTS["w_c"] > 0
+
+    ml_strong = compute_structured_score(0.9, 0.9, 0.9, 0.1)
+    assert ml_strong["band"] == "REVIEW"           # without E/C: 670
+    bridged = compute_structured_score(
+        0.9, 0.9, 0.9, 0.1, external_evidence=0.7, campaign_evidence=0.6)
+    assert bridged["band"] == "DECLINE"            # E/C lifts to 802
+    assert bridged["components"]["external_evidence"] == 0.7
+    assert bridged["components"]["campaign_evidence"] == 0.6
+
+    # monotone in each new term, bounded in [0, 1000]
+    a = compute_structured_score(0.2, 0.2, 0.2, 0.0)
+    b = compute_structured_score(0.2, 0.2, 0.2, 0.0,
+                                 external_evidence=0.5)
+    c = compute_structured_score(0.2, 0.2, 0.2, 0.0,
+                                 campaign_evidence=0.5)
+    assert b["score"] >= a["score"] and c["score"] >= a["score"]
+
+
+def test_predict_row_ec_blend_preserves_defaults():
+    scorer = FittedStructuredScore()
+    scorer.coef_ = [0.0] * 6
+    scorer.intercept_ = 0.0
+    scorer.columns = list(SCORE_COLUMNS)
+    row = {c: 0.5 for c in SCORE_COLUMNS}
+    base = scorer.predict_row(row)
+    assert base["score"] == 500.0
+    assert base["external_evidence"] == 0.0
+
+    up = scorer.predict_row(row, external_evidence=1.0,
+                            campaign_evidence=1.0)
+    assert up["score"] == 700.0                    # 500 + 120 + 80
+    assert up["external_evidence"] == 1.0
+    assert up["campaign_evidence"] == 1.0
+    assert up["evidence_components"]["w_e"] == DEFAULT_WEIGHTS["w_e"]
+    # out-of-range clamp, never negative contributions
+    assert scorer.predict_row(row, external_evidence=99.0)[
+        "score"] <= 1000
+
+
+def test_case_run_registers_ec_and_consistency_with_score_ctx(rig):
+    ens, twin = rig["ens"], rig["twin"]
+    from blue.features import compute_features as cf
+    X, y, _ = cf(list(twin.world.transactions), twin.world)
+    cols_sig = ens.score_all_signals(list(twin.world.transactions),
+                                     twin.world, manifold=rig["manifold"])
+    struct = FittedStructuredScore()
+    X_head = np.column_stack([np.asarray(cols_sig[c], dtype=np.float64)
+                              for c in SCORE_COLUMNS])
+    struct.fit(X_head, [1.0 if t.get("is_fraud") else 0.0
+                        for t in twin.world.transactions])
+
+    mem = ThreeClassMemory()
+    mem.remember_attack_signature("genetic", {"typology": "fan_in"})
+    mem.remember_attack_signature("genetic", {"typology": "fan_in"})
+    mgr = CaseManager(ens, twin, llm=LLMClient(), seed=7,
+                      manifold=rig["manifold"], structured=struct,
+                      memory=mem)
+
+    fraud_ids = [t["tx_id"] for t in twin.world.transactions
+                 if t.get("is_fraud")][:3]
+    rep = mgr.run_case("CASE_EC_GATE", fraud_ids)
+    sc = rep["structured"]
+    assert sc["external_evidence"] >= 0.0
+    assert sc["campaign_evidence"] > 0.0            # seeded recurrence=2
+    kinds = {v["kind"] for v in rep["evidence"].values()}
+    assert {"external_evidence", "campaign_evidence"} <= kinds
+    rid = sc["reason_evidence_ids"]
+    assert {"osint", "sanctions", "external_evidence", "campaign",
+            "fast_signals"} <= set(rid)
+
+    # /api/score  ↔  /api/investigate consistency: same rows → same score
+    rows = [t for t in twin.world.transactions
+            if t.get("tx_id") in fraud_ids]
+    sig = ens.score_all_signals(rows, twin.world, manifold=rig["manifold"])
+    ctx = mgr.case_evidence_context(sig, rows)
+    direct = struct.predict_row(
+        ctx["signals"],
+        external_evidence=ctx["external_evidence"],
+        campaign_evidence=ctx["campaign_evidence"])["score"]
+    assert abs(direct - sc["score"]) < 1e-6
+    assert ctx["sender_ids"] == rep["sender_accounts"]

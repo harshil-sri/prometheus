@@ -333,7 +333,9 @@ def get_event_log():
 @app.get("/api/score")
 def get_score(tx_id: str = ""):
     """Deep-path structured score from HONEST per-column signals (finding
-    #6 fix: no more faking GNN/meta as XGB copies)."""
+    #6 fix: no more faking GNN/meta as XGB copies). When the CaseManager is
+    live it derives the SAME evidence context as /api/investigate
+    (signals + deterministic E/C), so the two endpoints cannot disagree."""
     if not DEMO_STATE["ready"]:
         return {"error": "Not initialized"}
     twin = DEMO_STATE["twin"]
@@ -343,13 +345,19 @@ def get_score(tx_id: str = ""):
     tx = txs_all[0]
     bt: BlueTeamEnsemble = DEMO_STATE["blue_team"]
     struct: Optional[FittedStructuredScore] = DEMO_STATE["structured"]
+    cm = DEMO_STATE.get("case_manager")
 
     signals = bt.score_all_signals([tx], twin.world, manifold=None)
-    sig_scalar = {k: float(v[0]) if len(v) else 0.0
-                  for k, v in signals.items()}
+    ctx = cm.case_evidence_context(signals, [tx]) if cm is not None else None
+    sig_scalar = (ctx or {}).get("signals") or {
+        k: float(v[0]) if len(v) else 0.0 for k, v in signals.items()}
+    ext_ev = (ctx or {}).get("external_evidence", 0.0)
+    camp_ev = (ctx or {}).get("campaign_evidence", 0.0)
 
     if struct is not None:
-        deep = struct.predict_row(sig_scalar)
+        deep = struct.predict_row(sig_scalar,
+                                  external_evidence=ext_ev,
+                                  campaign_evidence=camp_ev)
         weights_source = struct.fit_meta.get("source", "fitted")
     else:
         prob = sig_scalar["meta"]
@@ -376,6 +384,8 @@ def get_score(tx_id: str = ""):
         "signal_columns": sig_scalar,
         "structured_score": deep["score"],
         "band": deep.get("band"),
+        "external_evidence": round(float(ext_ev), 4),
+        "campaign_evidence": round(float(camp_ev), 4),
         "top_reason_column": deep.get("top_reason_column"),
         "counterfactual": cf_formatted,
         "weights_source": weights_source,

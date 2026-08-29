@@ -1,15 +1,22 @@
 """Structured Deep-Path Score.
 
-R = w_t·T + w_g·G + w_b·B - w_u·U  mapped to 0-1000 Mastercard bands.
+R = w_t·T + w_g·G + w_b·B + w_e·E + w_c·C - w_u·U
+mapped to 0-1000 Mastercard bands.
 
 CRITICAL: This score is DEEP PATH ONLY. The fast path stays a pure ML probability.
+
+E (external evidence) is derived deterministically from sanctions screens
+and OSINT dossier risk fields; C (campaign evidence) from repeat campaign
+fingerprints in three-class memory (see scoring.evidence_mapping).
 """
 
-# Default weights (can be fit via constrained regression)
+# Default weights (can be fit via constrained regression — Phase 4)
 DEFAULT_WEIGHTS = {
     "w_t": 300.0,   # transaction evidence weight
     "w_g": 250.0,   # graph evidence weight
     "w_b": 200.0,   # behavioral evidence weight
+    "w_e": 120.0,   # external (sanctions/OSINT) evidence weight
+    "w_c": 80.0,    # campaign evidence weight
     "w_u": 50.0,    # uncertainty penalty
 }
 
@@ -29,6 +36,8 @@ def compute_structured_score(
     behavioral_evidence: float = 0.0,
     uncertainty: float = 0.0,
     weights: dict = None,
+    external_evidence: float = 0.0,
+    campaign_evidence: float = 0.0,
 ) -> dict:
     """Compute the structured deep-path score.
 
@@ -39,7 +48,9 @@ def compute_structured_score(
         graph_evidence: Evidence from graph/relational features (0-1)
         behavioral_evidence: Evidence from behavioral sequence (0-1)
         uncertainty: Uncertainty penalty (0-1)
-        weights: Dict with keys w_t, w_g, w_b, w_u
+        weights: Dict with keys w_t, w_g, w_b, w_e, w_c, w_u
+        external_evidence: Deterministic sanctions/OSINT evidence (0-1)
+        campaign_evidence: Repeat-campaign evidence from memory (0-1)
 
     Returns:
         dict with score, band, label, color
@@ -51,6 +62,8 @@ def compute_structured_score(
         w["w_t"] * transaction_evidence
         + w["w_g"] * graph_evidence
         + w["w_b"] * behavioral_evidence
+        + w["w_e"] * external_evidence
+        + w["w_c"] * campaign_evidence
         - w["w_u"] * uncertainty
     )
 
@@ -78,6 +91,8 @@ def compute_structured_score(
             "transaction_evidence": round(transaction_evidence, 4),
             "graph_evidence": round(graph_evidence, 4),
             "behavioral_evidence": round(behavioral_evidence, 4),
+            "external_evidence": round(external_evidence, 4),
+            "campaign_evidence": round(campaign_evidence, 4),
             "uncertainty": round(uncertainty, 4),
         },
         "weights": w,
@@ -193,8 +208,18 @@ class FittedStructuredScore:
         return self
 
     # ------------------------------------------------------------------ #
-    def predict_row(self, signals: dict) -> dict:
-        """signals: column-name -> value (missing columns → error loudly)."""
+    def predict_row(self, signals: dict,
+                    external_evidence: float = 0.0,
+                    campaign_evidence: float = 0.0) -> dict:
+        """signals: column-name -> value (missing columns → error loudly).
+
+        Combination rule (documented, law 7 anti-fabrication):
+        the logistic head over the six ML signal columns supplies the ML prior
+        (fills the T/G/B evidence slots); deterministic E (sanctions+OSINT)
+        and C (repeat-campaign) evidence are added linearly with the shared
+        DEFAULT_WEIGHTS and clamped to [0, 1000]. Both scalars are bounded,
+        pure and deterministic — never invented or LLM-produced here.
+        """
         missing = [c for c in self.columns if c not in signals]
         if missing:
             raise KeyError(f"missing signal columns: {missing}")
@@ -206,7 +231,13 @@ class FittedStructuredScore:
             contribs[c] = round(w * v, 4)
         import math
         p_fraud = 1.0 / (1.0 + math.exp(-z)) if z >= -35 else 0.0
-        score = max(0.0, min(1000.0, p_fraud * 1000.0))
+
+        w_e = float(DEFAULT_WEIGHTS.get("w_e", 0.0))
+        w_c = float(DEFAULT_WEIGHTS.get("w_c", 0.0))
+        e_ext = max(0.0, min(1.0, float(external_evidence)))
+        e_camp = max(0.0, min(1.0, float(campaign_evidence)))
+        score = max(0.0, min(1000.0, p_fraud * 1000.0
+                             + w_e * e_ext + w_c * e_camp))
         label, color = None, None
         for lo, hi, lbl, clr in BANDS:
             if lo <= score < hi or (lbl == "DECLINE" and score >= hi):
@@ -259,6 +290,14 @@ class FittedStructuredScore:
             "top_reason_contribution": top_reason["contribution"]
             if top_reason else None,
             "counterfactual": cf,
+            "external_evidence": round(e_ext, 4),
+            "campaign_evidence": round(e_camp, 4),
+            "evidence_components": {
+                "external_source": "sanctions+osint (deterministic mapping)",
+                "campaign_source": "memory.attack_signatures recurrence",
+                "w_e": round(w_e, 4),
+                "w_c": round(w_c, 4),
+            },
             "weights_provenance": self.fit_meta,
             "columns": list(self.columns),
         }

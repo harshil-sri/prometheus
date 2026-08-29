@@ -99,6 +99,57 @@ class CaseManager:
         return SanctionsAgent(self._fixtures(), mode="fixture",
                               call_budget=6, watch_seed=self.seed)
 
+    def case_evidence_context(self, signals: Dict,
+                              rows: List[Dict]) -> Dict[str, Any]:
+        """Deterministic deep-path inputs shared by the case path and
+        /api/score: per-column signal mean plus bounded E (sanctions/OSINT)
+        and C (campaign) evidence. Identical inputs → identical context, so
+        the two score sources cannot disagree for the same rows."""
+        row_signal_mean = {
+            k: float(np.mean(v)) if len(v) else 0.0
+            for k, v in signals.items()
+        }
+        sender_ids: List[str] = []
+        for t in rows:
+            fid = str(t.get("from"))
+            if fid.startswith("ACC_") and fid not in sender_ids:
+                sender_ids.append(fid)
+            if len(sender_ids) >= 3:
+                break
+        dossiers: List[Dict] = []
+        screens: List[Dict] = []
+        if sender_ids:
+            fx = self._fixtures()
+            for sid in sender_ids:
+                d = fx.get(sid)
+                if d:
+                    dossiers.append(d)
+            try:
+                agent = self._agent_sanctions()
+                for sid in sender_ids:
+                    screens.append(agent.screen(sid))
+            except Exception as exc:                    # noqa: BLE001
+                logger.warning("case evidence context screen failed: %s", exc)
+        from scoring.evidence_mapping import (           # noqa: E402
+            campaign_evidence as _campaign_evidence,
+            external_evidence as _external_evidence,
+            osint_evidence as _osint_evidence,
+            sanctions_evidence as _sanctions_evidence,
+        )
+        sanc_ev = _sanctions_evidence(screens)
+        osint_ev = _osint_evidence(dossiers)
+        return {
+            "signals": row_signal_mean,
+            "sender_ids": sender_ids,
+            "osint_dossiers": dossiers,
+            "screens": screens,
+            "sanctions_evidence": sanc_ev,
+            "osint_evidence": osint_ev,
+            "external_evidence": _external_evidence(dossiers, screens),
+            "campaign_evidence": _campaign_evidence(
+                self.memory.attack_signatures),
+        }
+
     def run_case(self, case_id: str, tx_ids: List[str],
                  include_narrative: bool = True,
                  ) -> Dict[str, Any]:
@@ -192,23 +243,29 @@ class CaseManager:
         try:
             dele.spend("OsintAgent")
             fx = self._fixtures()
-            dossiers = [fx.get(sid) for sid in sender_ids]
+            osint_dossiers: List[Dict] = [fx.get(sid) for sid in sender_ids]
             e_osint = register("osint_dossier",
                                {"dossiers": [
                                    {"entity_id": d["entity_id"],
                                     "pseudonym": d["pseudonym"],
-                                    "kind": d["kind"]}
-                                   for d in dossiers if d]},
+                                    "kind": d["kind"],
+                                    "risk_state_at_enrichment":
+                                        d.get("risk_state_at_enrichment"),
+                                    "device_history": d.get("device_history"),
+                                    "kyc_tier": d.get("kyc_tier"),
+                                    "watch_flags": d.get("watch_flags") or []}
+                                   for d in osint_dossiers if d]},
                                "CaseManager→OSINTFixtureProvider")
         except Exception as exc:
             logger.warning("OsintAgent failed: %s", exc)
+            osint_dossiers = []
             e_osint = register("osint_dossier", {}, "",
                                computed_ok=False)
 
         sanction_hits: List[Dict] = []
+        screened: List[Dict] = []
         try:
             agent = self._agent_sanctions()
-            screened = []
             for sid in sender_ids:
                 dele.spend("SanctionsAgent")
                 res = agent.screen(sid)
@@ -224,6 +281,32 @@ class CaseManager:
             logger.warning("SanctionsAgent failed: %s", exc)
             e_sanc = register("sanctions_screening", {}, "",
                               computed_ok=False)
+
+        # ------- deterministic E / C evidence mapping (2.1 wiring) -------
+        # Pure, deterministic folds over the evidence above — no LLM, no RNG.
+        from scoring.evidence_mapping import (                 # noqa: E402
+            campaign_evidence as _campaign_evidence,
+            external_evidence as _external_evidence,
+            osint_evidence as _osint_evidence,
+            sanctions_evidence as _sanctions_evidence,
+        )
+        sanc_ev = _sanctions_evidence(screened)
+        osint_ev = _osint_evidence([d for d in osint_dossiers if d])
+        ext_ev = _external_evidence([d for d in osint_dossiers if d], screened)
+        camp_ev = _campaign_evidence(self.memory.attack_signatures)
+        e_ext = register("external_evidence",
+                         {"sender_scored": len(sender_ids),
+                          "sanctions_evidence": sanc_ev,
+                          "osint_evidence": osint_ev,
+                          "external_evidence": ext_ev},
+                         "CaseManager→evidence_mapping(deterministic)")
+        e_camp = register("campaign_evidence",
+                          {"recurrences": [
+                              int(v["recurrence"])
+                              for v in self.memory.attack_signatures.values()
+                              if v.get("recurrence", 0) >= 2],
+                           "campaign_evidence": camp_ev},
+                          "CaseManager→ThreeClassMemory.attack_signatures")
 
         # ---------------- agent 5: spectral topology ------------------------
         try:
@@ -303,20 +386,23 @@ class CaseManager:
                 raise ValueError("structured scorer not fitted/attached")
             if not isinstance(signals, dict):
                 raise ValueError("signals unavailable; cannot derive deep score")
-            row_signal_mean = {
-                k: float(np.mean(v)) if len(v) else 0.0
-                for k, v in signals.items()
-            }
             dele.spend("StructuredScorer")
-            score_result = self.structured.predict_row(row_signal_mean)
+            score_result = self.structured.predict_row(
+                {k: float(np.mean(v)) if len(v) else 0.0
+                 for k, v in signals.items()},
+                external_evidence=ext_ev,
+                campaign_evidence=camp_ev)
             score_result["reason_evidence_ids"] = {
                 "fast_signals": e_fast, "spectral": e_spec,
-                "sanctions": e_sanc}
+                "sanctions": e_sanc, "osint": e_osint,
+                "external_evidence": e_ext, "campaign": e_camp}
             e_score = register("structured_score",
                                {k: score_result[k]
                                 for k in ("score", "band", "p_fraud",
                                           "top_reason_column",
-                                          "counterfactual")},
+                                          "counterfactual",
+                                          "external_evidence",
+                                          "campaign_evidence")},
                                "CaseManager→StructuredScorer(fitted)")
         except Exception as exc:                                # noqa: BLE001
             logger.warning("StructuredScorer failed: %s", exc)
