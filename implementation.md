@@ -247,6 +247,8 @@ Full suite green + `artifacts/protocol_eval.json` produced (before/after + FP ra
 ### Goal
 Stop hand-picking weights; fit via constrained reduction, persist to the artifact path, and show the fit.
 
+### Status: ✅ DONE
+
 ### Ground truth from source
 - `FittedStructuredScore.fit()` uses `LogisticRegression` on 6 columns (`structured_score.py:168-193`);
   fitted artifact exists at `src/artifacts/structured_weights.json` (n=786, pos=16, auc=1.0) — but the
@@ -254,20 +256,36 @@ Stop hand-picking weights; fit via constrained reduction, persist to the artifac
   missing repo-root file.
 
 ### Steps
-1. `scripts/fit_weights.py`: constrained/monotonic regression (`scipy.optimize.nnls` or `sklearn.isotonic`)
-   of standardized evidence terms against eval outcome labels → fit the `w_*` (weighted formula);
-   dump to **one canonical path** (reconcile the mismatch: point `DEFAULT_WEIGHTS_PATH` at
-   `src/artifacts/structured_weights.json`, keeping the logistic coefs alongside the fitted `w_*`).
-2. Report on dashboard: fitted vs baseline weights + provenance (`fit_meta`).
-3. Keep deterministic + documented; both scorers remain interpolatable.
+1. ✅ `scripts/fit_weights.py`: constrained/monotonic regression (`scipy.optimize.nnls` — non-negativity ⇒
+   every `w_*` ≥ 0 ⇒ monotone) of standardized evidence terms against deterministic targets (fitted
+   logistic P(fraud)×1000 on the canonical twin's real rows + a documented 6-cell calibration grid
+   pinning the sparse E/C axes and the w_u penalty) → fitted `w_*`; dump to **one canonical path**
+   (`DEFAULT_WEIGHTS_PATH` reconciled to `src/artifacts/structured_weights.json`, schema v2, logistic
+   coefs alongside the fitted `w_*`). Artifact renewed on the canonical config (n=8022, pos=16, auc=1.0)
+   and, with no wall-clock fields, regenerates byte-for-byte deterministically (verified by double run,
+   `cmp`-identical). The pure fit lives in `src/scoring/weight_fit.py`, shared by script + tests.
+2. ✅ Report on dashboard: new **Fitted vs Baseline Formula Weights** panel (per-term fitted/baseline/Δ,
+   decline-reachability, provenance) fed by `GET /api/structured-weights` (reads the committed artifact,
+   deterministic across random-seed session inits); the spectrum card's provenance pill + weights_source
+   bubble. `save()` merge-preserves `w_formula`/`baseline_weights`/`w_fit` from the file, so session
+   refits (random-seed logistic) never wipe the canonical fitted weights.
+3. ✅ Deterministic + documented; both scorers stay interpolatable: `predict_row` uses fitted `w_e`/`w_c`
+   additively (seam-equal to the weighted formula, verified by test); `compute_structured_score` accepts
+   any weights override. Fitted-vs-baseline + provenance reported in the artifact (`w_fit` diagnostics:
+   per-column std, degenerate terms, reachability scale, residual, grid) — including WHY a term may fit
+   to 0 (near-zero variance / collinearity of ensemble outputs on the twin) instead of hiding it.
 
 ### Tests
-- Weights file written, schema-valid, monotonic constraints satisfied.
-- Two-score-path consistency re-verified (Phase 1 seam).
-- Determinism.
+- ✅ Weights file written to the canonical path, schema-valid (`prometheus.structured_weights.v2`), six
+  `w_*` keys, monotone (all ≥ 0, squashing negative-weight load ⇒ ValueError), reachability
+  (max raw = 1000 ⇒ every band reachable).
+- ✅ Two-score-path consistency re-verified: `predict_row` Δ(E)=w_e, Δ(E+C)=w_e+w_c (test_weights seam).
+- ✅ Determinism: `fit_w_star` on a fixed matrix twice ⇒ identical dicts/diagnostics (in-suite);
+  full `scripts/fit_weights.py` double-run byte-identical (implementation-time check).
 
 ### Gate
-Full suite green + `artifacts/structured_weights.json` renewed containing fitted `w_*` + dashboard loads it.
+✅ Full suite green (198 passed incl. 6 new test_weights) + `artifacts/structured_weights.json` renewed
+(n=8022/pos=16) containing fitted `w_*` + dashboard loads the `/api/structured-weights` panel.
 
 ---
 
