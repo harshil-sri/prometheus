@@ -1,7 +1,7 @@
 {
   "schema": "prometheus.ood_matrix.v1",
-  "generated_at": "2026-08-27T16:21:43",
-  "elapsed_seconds": 2.47,
+  "generated_at": "2026-08-29T11:19:51",
+  "elapsed_seconds": 0.92,
   "config": {
     "schema": "prometheus.ood_matrix.v1",
     "seed": 42,
@@ -27,44 +27,44 @@
   "holdout_fingerprint": "292cc7f67639cea556948086f8303fb248249da14f45b3d4825cca8f0473a162",
   "rates": {
     "rule_compiler": {
-      "A1": 0.1667,
+      "A1": 0.3333,
       "A3": 0.6667,
-      "A4": 0.2857,
-      "A6": 0.0,
+      "A4": 0.8571,
+      "A6": 0.625,
       "A2": 0.0,
-      "A5": 0.2857
+      "A5": 1.0
     },
     "genetic": {
-      "A1": 0.4,
-      "A3": 0.375,
+      "A1": 0.2857,
+      "A3": 0.25,
       "A4": 0.0,
       "A6": 0.0,
-      "A2": 0.0,
-      "A5": 0.0625
+      "A2": 0.75,
+      "A5": 0.0
     },
     "shadow_pgd": {
       "A1": 0.0,
       "A3": 0.0,
-      "A4": 0.0,
-      "A6": 0.0,
+      "A4": 1.0,
+      "A6": 1.0,
       "A2": 0.0,
       "A5": 0.0
     },
     "llm_strategist": {
       "A1": 0.1667,
       "A3": 0.3333,
-      "A4": 0.0,
+      "A4": 0.0952,
       "A6": 0.0,
       "A2": 0.0,
-      "A5": 0.1818
+      "A5": 0.2727
     }
   },
   "cells": {
     "rule_compiler": {
       "A1": {
         "n_txs": 12,
-        "caught": 2,
-        "detection_rate": 0.1667,
+        "caught": 4,
+        "detection_rate": 0.3333,
         "held_out": false
       },
       "A3": {
@@ -75,14 +75,14 @@
       },
       "A4": {
         "n_txs": 14,
-        "caught": 4,
-        "detection_rate": 0.2857,
+        "caught": 12,
+        "detection_rate": 0.8571,
         "held_out": false
       },
       "A6": {
-        "n_txs": 6,
-        "caught": 0,
-        "detection_rate": 0.0,
+        "n_txs": 8,
+        "caught": 5,
+        "detection_rate": 0.625,
         "held_out": false
       },
       "A2": {
@@ -92,23 +92,23 @@
         "held_out": true
       },
       "A5": {
-        "n_txs": 14,
-        "caught": 4,
-        "detection_rate": 0.2857,
+        "n_txs": 16,
+        "caught": 16,
+        "detection_rate": 1.0,
         "held_out": true
       }
     },
     "genetic": {
       "A1": {
-        "n_txs": 10,
+        "n_txs": 14,
         "caught": 4,
-        "detection_rate": 0.4,
+        "detection_rate": 0.2857,
         "held_out": false
       },
       "A3": {
         "n_txs": 16,
-        "caught": 6,
-        "detection_rate": 0.375,
+        "caught": 4,
+        "detection_rate": 0.25,
         "held_out": false
       },
       "A4": {
@@ -118,21 +118,21 @@
         "held_out": false
       },
       "A6": {
-        "n_txs": 13,
+        "n_txs": 14,
         "caught": 0,
         "detection_rate": 0.0,
         "held_out": false
       },
       "A2": {
         "n_txs": 4,
-        "caught": 0,
-        "detection_rate": 0.0,
+        "caught": 3,
+        "detection_rate": 0.75,
         "held_out": true
       },
       "A5": {
         "n_txs": 32,
-        "caught": 2,
-        "detection_rate": 0.0625,
+        "caught": 0,
+        "detection_rate": 0.0,
         "held_out": true
       }
     },
@@ -151,18 +151,18 @@
       },
       "A4": {
         "n_txs": 6,
-        "caught": 0,
-        "detection_rate": 0.0,
+        "caught": 6,
+        "detection_rate": 1.0,
         "held_out": false
       },
       "A6": {
-        "n_txs": 4,
-        "caught": 0,
-        "detection_rate": 0.0,
+        "n_txs": 1,
+        "caught": 1,
+        "detection_rate": 1.0,
         "held_out": false
       },
       "A2": {
-        "n_txs": 5,
+        "n_txs": 6,
         "caught": 0,
         "detection_rate": 0.0,
         "held_out": true
@@ -189,12 +189,12 @@
       },
       "A4": {
         "n_txs": 21,
-        "caught": 0,
-        "detection_rate": 0.0,
+        "caught": 2,
+        "detection_rate": 0.0952,
         "held_out": false
       },
       "A6": {
-        "n_txs": 20,
+        "n_txs": 21,
         "caught": 0,
         "detection_rate": 0.0,
         "held_out": false
@@ -207,8 +207,8 @@
       },
       "A5": {
         "n_txs": 22,
-        "caught": 4,
-        "detection_rate": 0.1818,
+        "caught": 6,
+        "detection_rate": 0.2727,
         "held_out": true
       }
     }
@@ -234,18 +234,18 @@
       "A2": "rule_compiler",
       "A3": "shadow_pgd",
       "A4": "genetic",
-      "A5": "shadow_pgd",
-      "A6": "rule_compiler"
+      "A5": "genetic",
+      "A6": "genetic"
     },
     "overall_worst_case_detection": 0.0,
     "overall_exploitability": 1.0,
-    "mean_detection": 0.1218,
+    "mean_detection": 0.3182,
     "note": "exploitability is defined on the WORST case (law 8): averages hide the hole an attacker would find"
   },
-  "runtime_seconds": 8.5,
+  "runtime_seconds": 3.35,
   "platform": {
-    "python": "3.13.11",
-    "os": "Windows-11-10.0.26300-SP0",
+    "python": "3.14.4",
+    "os": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
     "cpu_only": true
   },
   "rl_stretch": {

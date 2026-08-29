@@ -667,7 +667,7 @@ def get_rl_stretch():
         reg = json.load(open(os.path.join(ARTIFACT_DIR,
                                           "strategy_registry.json")))
         for m in reg.get("manifest", []):
-            if m.get("strategy") == "DQN_rl_stretch":
+            if m.get("strategy_id") == "DQN_rl_stretch":
                 registry_metrics = m.get("metrics", {})
     except Exception:                       # noqa: BLE001
         pass

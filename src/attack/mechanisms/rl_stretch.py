@@ -71,7 +71,6 @@ def _genome_state(rng: random.Random) -> np.ndarray:
         rng.uniform(3, 12),                        # members
         rng.uniform(1, 14),                        # days
         rng.uniform(0.02, 0.12),                   # margin
-        rng.uniform(-1, 1),                        # device bias placeholder
     ], dtype=np.float32)
 
 
@@ -81,7 +80,6 @@ def _clip_state(s: np.ndarray) -> np.ndarray:
     s[1] = np.clip(s[1], 3, 12)
     s[2] = np.clip(s[2], 1, 14)
     s[3] = np.clip(s[3], 0.02, 0.12)
-    s[4] = np.clip(s[4], -1, 1)
     return s
 
 
@@ -109,7 +107,7 @@ def run_rl_stretch(victim_ensemble, twin, seed: int = 42,
     torch.manual_seed(seed)
     rng = random.Random(seed)
 
-    n_states, n_actions = 5, len(ACTIONS)
+    n_states, n_actions = 4, len(ACTIONS)
     net = nn.Sequential(nn.Linear(n_states, 64), nn.ReLU(),
                         nn.Linear(64, 64), nn.ReLU(),
                         nn.Linear(64, n_actions))
