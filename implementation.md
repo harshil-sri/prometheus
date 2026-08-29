@@ -173,7 +173,7 @@ PCAT-style policy layer, reported as an independent before/after with FP rate.
 | `src/twin/agentic.py` | `AgenticCommerce(world, seed)` coordinator: `Agent`+`Credential` (scoped budget), Mandate-style signed objects (Intent→Cart→Payment, deterministic sha256 signing), merchant `registry` (+ mirrors to `world.merchants`), `checkout()` with policy hooks, audit `events` log, observable-channel `session_log` (RC-3), atomic budget CAS |
 | `src/attack/protocol_attacks.py` | T9 RC-1..RC-5 builders + `run_t9_case(agentic, rc, defense, seed)`; `register_mechanism("protocol_structural")` + `register_attack_types({"T9"})` at import |
 | `src/eval/judges.py` | Deterministic judges (wallet-string match / regex / event-count / status-code) via `judge_case(rc, events) → verdict` (no LLM; AIP-Bench style) |
-| `src/policy/pcat.py` | `PCATPolicy.enforce(op) → (allowed, reason)` — P1 signed registry, P2 identity-bound payout, P3 channel/redirect, P4 atomic check-then-deduct (threading.Lock + CAS), P5 preregistered caller identity |
+| `src/policy/pcat.py` | `PCATPolicy.enforce(op) → (allowed, reason)` — P1 signed registry, P2 identity-bound payout, P3 observable-channel, P4 atomic check-then-deduct (threading.Lock + CAS), P5 preregistered caller identity |
 | `scripts/protocol_eval.py` | before/after harness → `artifacts/protocol_eval.json` (per-RC success w/o vs with PCAT + benign FP rate + verbatim citations) |
 | `src/api/main.py` | + `POST /api/agentic/checkout` (PCAT-enforced, P4 lock), `GET /api/agentic/status`, `GET /api/protocol` (serves the artifact; Phase 7 panel) — existing endpoints untouched |
 | `tests/test_protocol.py` | registry wiring, per-RC before/after, benign FP, determinism, fingerprint guard |

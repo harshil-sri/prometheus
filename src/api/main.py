@@ -199,7 +199,8 @@ def agentic_status():
         "agents": len(sandbox.agents),
         "credentials": len(sandbox.credentials),
         "merchants": sorted(sandbox.registry),
-        "certified_payouts": sorted(p for p, _ in st["pcat"]._certified().items()),
+        "certified_payouts": sorted(
+            st["pcat"].resolved_certified().keys()),
         "leaked_credentials": leaked,
         "session_log_lines": len(sandbox.session_log),
         "world_transactions": len(sandbox.world.transactions),
@@ -242,15 +243,18 @@ def protocol_eval_status():
 def get_ood_matrix():
     """Mechanism × attack-type OOD detection matrix for the heatmap panel.
 
-    Serves the REAL persisted artifact written by scripts/mechanism_eval.py —
-    never fabricated. Honest fallback when the artifact is missing."""
-    path = Path(STRUCTURED_WEIGHTS_PATH).parent / "ood_matrix.json"
-    if not path.exists():
+    Serves the REAL persisted artifact written by scripts/mechanism_eval.py to
+    <project>/artifacts — never fabricated. Honest fallback when the artifact
+    is missing."""
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))))
+    path = os.path.join(project_root, "artifacts", "ood_matrix.json")
+    if not os.path.exists(path):
         return {"present": False,
                 "note": "OOD matrix not generated yet — run "
                         "scripts/mechanism_eval.py."}
     try:
-        d = json.loads(path.read_text())
+        d = json.load(open(path))
     except Exception as exc:                     # noqa: BLE001
         return {"present": False,
                 "note": f"OOD matrix unreadable: {exc}"}

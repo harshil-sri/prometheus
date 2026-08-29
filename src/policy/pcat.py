@@ -20,30 +20,28 @@ from typing import Any, Dict, Optional, Tuple
 
 from twin.agentic import _verify
 
-OBSERVABLE_MARKERS = ("http", "log", "url", "query")
-
 
 class PCATPolicy:
     """Deterministic structural gate. `enforce(op) -> (allowed, reason)`."""
 
     def __init__(self, *, certified_payouts: Optional[Dict[str, str]] = None,
-                 redirect_allowlist: Optional[Tuple[str, ...]] = (),
                  allowed_callers: Optional[Dict[str, tuple]] = None,
-                 agentic: Any = None,
-                 leak_markers: Tuple[str, ...] = OBSERVABLE_MARKERS):
+                 agentic: Any = None):
         # payout_account -> merchant_id (identity table from AgenticCommerce).
         self.certified_payouts = certified_payouts or {}
-        self.redirect_allowlist = redirect_allowlist or ()
         # caller identity -> allowed tool scopes (P5 registry).
         self.allowed_callers = allowed_callers or {}
         # Optional live wiring: tables resolve from the AgenticCommerce at
         # enforce() time, so construction order never matters.
         self._agentic = agentic
-        self.leak_markers = leak_markers
 
     # -- live table resolution -----------------------------------------------
 
-    def _certified(self) -> Dict[str, str]:
+    def resolved_certified(self) -> Dict[str, str]:
+        """Payout->merchant map over signed, identity-bound registry entries.
+
+        Public so the API/eval can report exactly which payouts are certified
+        under the live tables (the agentic_status endpoint surfaces this)."""
         if self._agentic is not None:
             return {
                 entry["payout_account"]: mid
@@ -51,6 +49,13 @@ class PCATPolicy:
                 if entry.get("signed") and mid in self._agentic.identity_table
             }
         return self.certified_payouts
+
+    def resolved_callers(self) -> Dict[str, tuple]:
+        if self._agentic is not None:
+            return dict(self._agentic.authz_table)
+        return self.allowed_callers
+
+    # -- individual blocks -------------------------------------------------
 
     def _callers(self) -> Dict[str, tuple]:
         if self._agentic is not None:
@@ -72,7 +77,7 @@ class PCATPolicy:
     def p2_identity(self, op: Dict[str, Any]) -> Tuple[bool, str]:
         """Payout destination must resolve to a certified identity."""
         payout = op.get("payout_account", "")
-        if payout in self._certified():
+        if payout in self.resolved_certified():
             return True, ""
         return False, f"P2 untrusted payout destination {payout}"
 
@@ -90,7 +95,7 @@ class PCATPolicy:
         """Sensitive tool calls need a pre-registered caller identity."""
         caller = op.get("caller_identity")
         requested = set(op.get("scope", []))
-        registered = self._callers().get(caller)
+        registered = self.resolved_callers().get(caller)
         if registered is not None and requested <= set(registered):
             return True, ""
         return False, "P5 unregistered caller for sensitive tool call"

@@ -89,8 +89,10 @@ def evaluate(*, seed: int = 42, accounts: int = 1200, merchants: int = 150,
     """Run one honest baseline evaluation; returns (artifact, console_lines).
 
     Deterministic for a fixed argument set (same seed/accounts/merchants/
-    steps/repeats ⇒ identical artifact). Raises GenerationShortfallError
-    when the eval population cannot support a per-type recall estimate.
+    steps/repeats ⇒ byte-identical artifact apart from the two wall-clock
+    fields, ``generated_at`` and the holdout ``locked_at``; the fingerprint
+    itself is seed-deterministic). Raises GenerationShortfallError when the
+    eval population cannot support a per-type recall estimate.
 
     Funding hardening (updates.md 2.3): before the eval phase the funded
     upper tail of the twin is partitioned into DISJOINT, deterministic

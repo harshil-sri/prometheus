@@ -210,6 +210,14 @@ def test_t9_not_in_trainable_or_heldout_axes():
     assert "T9" not in ALL_ATTACKS
 
 
+def test_t9_attributes_via_attack_type_of_tx():
+    """Lock the plan's attribution claim: once benchmark_attacks loads
+    (importing protocol_attacks registers T9), a T9 row's tx is typed T9."""
+    from blue.splits import attack_type_of_tx
+    assert attack_type_of_tx({"attack_id": "T9"}) == "T9"
+    assert attack_type_of_tx({"attack_id": "T9-RC-1"}) == "T9"
+
+
 def test_fingerprint_unchanged_by_t9_registration():
     h = lock_holdout()
     assert h.fingerprint == HOLDOUT_FINGERPRINT
