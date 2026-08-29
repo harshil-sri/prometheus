@@ -1,0 +1,84 @@
+{
+  "schema": "prometheus.feedback_timeline.v1",
+  "generator": "scripts/timeline_eval.py (cycles=4, accounts=600, steps=60, gnn_epochs=15)",
+  "seed": 42,
+  "platform": {
+    "python": "3.14.4",
+    "os": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "cpu_only": true
+  },
+  "entries": [
+    {
+      "idx": 0,
+      "source": "timeline_eval",
+      "seed_used": 1051,
+      "blind_spot": "relational camouflage",
+      "recall_before": 0.375,
+      "recall_after": 1.0,
+      "improved": true,
+      "generated_fixes": 24,
+      "retrain_rounds_used": 2,
+      "max_retrain_rounds": 2,
+      "generalization_recall_unseen_generator": 0.5,
+      "evidence_ids": [
+        "EVD_325BF2C20193",
+        "EVD_41CC3A9BCCD1",
+        "EVD_75AD2C5A46CA"
+      ]
+    },
+    {
+      "idx": 1,
+      "source": "timeline_eval",
+      "seed_used": 2060,
+      "blind_spot": "relational camouflage",
+      "recall_before": 0.875,
+      "recall_after": 1.0,
+      "improved": true,
+      "generated_fixes": 12,
+      "retrain_rounds_used": 1,
+      "max_retrain_rounds": 2,
+      "generalization_recall_unseen_generator": 0.5,
+      "evidence_ids": [
+        "EVD_FB2CD44A6027",
+        "EVD_28EC3F9453C6",
+        "EVD_75AD2C5A46CA"
+      ]
+    },
+    {
+      "idx": 2,
+      "source": "timeline_eval",
+      "seed_used": 3069,
+      "blind_spot": "none",
+      "recall_before": 1.0,
+      "recall_after": 1.0,
+      "improved": false,
+      "generated_fixes": 0,
+      "retrain_rounds_used": 0,
+      "max_retrain_rounds": 2,
+      "generalization_recall_unseen_generator": 0.5,
+      "evidence_ids": [
+        "EVD_E4A9D7395BC8",
+        "EVD_E4A9D7395BC8",
+        "EVD_75AD2C5A46CA"
+      ]
+    },
+    {
+      "idx": 3,
+      "source": "timeline_eval",
+      "seed_used": 4078,
+      "blind_spot": "none",
+      "recall_before": 1.0,
+      "recall_after": 1.0,
+      "improved": false,
+      "generated_fixes": 0,
+      "retrain_rounds_used": 0,
+      "max_retrain_rounds": 2,
+      "generalization_recall_unseen_generator": 0.5,
+      "evidence_ids": [
+        "EVD_E4A9D7395BC8",
+        "EVD_E4A9D7395BC8",
+        "EVD_75AD2C5A46CA"
+      ]
+    }
+  ]
+}

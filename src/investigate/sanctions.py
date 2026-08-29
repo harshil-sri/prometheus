@@ -41,7 +41,9 @@ def build_watch_list(names: Set[str], hit_ratio: float = 0.04,
                      seed: int = 42) -> Dict[str, Dict[str, Any]]:
     """Deterministic sanctions-style watch list over SYNTHETIC names only."""
     rng = random.Random(seed)
-    chosen = sorted(n for n in names if rng.random() < hit_ratio)
+    # Sort BEFORE drawing so RNG draws are assigned in a canonical order
+    # (set iteration order is per-process hash-dependent).
+    chosen = [n for n in sorted(names) if rng.random() < hit_ratio]
     wl: Dict[str, Dict[str, Any]] = {}
     for n in chosen:
         wl[n] = {

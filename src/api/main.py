@@ -45,6 +45,13 @@ from eval.judges import judge_rc as _judge_rc
 # live at src/artifacts/structured_weights.json — one constant, both scorers.
 STRUCTURED_WEIGHTS_PATH = DEFAULT_WEIGHTS_PATH
 
+# Phase 7: persisted-cycle artifacts live under <project>/artifacts alongside
+# the other evaluation exhibits.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))))
+ARTIFACT_DIR = os.path.join(PROJECT_ROOT, "artifacts")
+TIMELINE_PATH = os.path.join(ARTIFACT_DIR, "feedback_timeline.json")
+
 app = FastAPI(title="Project Prometheus Dashboard", version="1.0.0")
 
 app.add_middleware(
@@ -488,6 +495,16 @@ def run_demo():
             "evidence_ids": report["evidence_ids"],
         }
 
+        # Phase 7 blind-spot timeline: persist THIS cycle alongside the
+        # committed baseline; a demo/run hiccup must never kill the demo.
+        try:
+            from feedback.timeline import FeedbackTimeline, summarize_cycle
+            timeline = FeedbackTimeline(TIMELINE_PATH)
+            timeline.append(summarize_cycle(report, seed=demo_seed,
+                                            source="demo_session"))
+        except Exception as exc:                          # noqa: BLE001
+            logger.warning("timeline append failed: %s", exc)
+
         return {
             "status": "ok",
             "beat1": {"recall": report["recall_before"],
@@ -593,6 +610,123 @@ def get_structured_weights():
     if struct is None:
         return {"present": False}
     return {"present": True, **struct.weights_report()}
+
+
+# --------------------------------------------------------------------------- #
+# Phase 7 standout panels
+# --------------------------------------------------------------------------- #
+
+@app.get("/api/timeline")
+def get_timeline():
+    """Blind-Spot timeline: every completed feedback cycle, oldest first.
+
+    Baseline rows come from the deterministic scripts/timeline_eval.py
+    artifact; each live 3-beat demo appends its own cycle to the same file,
+    so the trajectory grows across sessions without a schema change."""
+    if not os.path.exists(TIMELINE_PATH):
+        return {"present": False,
+                "note": "feedback_timeline.json not generated yet — run "
+                        "scripts/timeline_eval.py."}
+    try:
+        d = json.load(open(TIMELINE_PATH))
+    except Exception as exc:                # noqa: BLE001
+        return {"present": False, "note": f"timeline unreadable: {exc}"}
+    entries = d.get("entries", [])
+    entries.sort(key=lambda e: e.get("idx", 0))
+    return {
+        "present": True,
+        "schema": d.get("schema"),
+        "generator": d.get("generator"),
+        "total": len(entries),
+        "entries": entries,
+    }
+
+
+@app.get("/api/rl-stretch")
+def get_rl_stretch():
+    """RL negative-result panel: the pre-registered kill-criterion result.
+
+    Serves the REAL `rl_stretch` measurement block persisted by
+    scripts/mechanism_eval.py (honest negative when the criterion fails);
+    never recomputed, never fabricated."""
+    path = os.path.join(ARTIFACT_DIR, "ood_matrix.json")
+    if not os.path.exists(path):
+        return {"present": False,
+                "note": "ood_matrix.json not generated yet — run "
+                        "scripts/mechanism_eval.py."}
+    try:
+        d = json.load(open(path))
+    except Exception as exc:                # noqa: BLE001
+        return {"present": False, "note": f"ood_matrix unreadable: {exc}"}
+    rl = d.get("rl_stretch") or {}
+    if not rl:
+        return {"present": False,
+                "note": "rl_stretch measurement missing from ood_matrix.json"}
+    registry_metrics = {}
+    try:
+        reg = json.load(open(os.path.join(ARTIFACT_DIR,
+                                          "strategy_registry.json")))
+        for m in reg.get("manifest", []):
+            if m.get("strategy") == "DQN_rl_stretch":
+                registry_metrics = m.get("metrics", {})
+    except Exception:                       # noqa: BLE001
+        pass
+    shipped = bool(rl.get("shipped", False))
+    return {
+        "present": True,
+        "schema": d.get("schema"),
+        "episodes_run": rl.get("episodes_run"),
+        "rl_best_mean_evasion": rl.get("rl_best_mean_evasion"),
+        "heuristic_baseline": rl.get("heuristic_baseline"),
+        "shipped": shipped,
+        "honest_negative": not shipped,
+        "reason": rl.get("reason", ""),
+        "pre_registered_criterion": rl.get("pre_registered_criterion", {}),
+        "registry_metrics": registry_metrics,
+    }
+
+
+@app.get("/api/attribution")
+def get_attribution():
+    """Mechanism × evidence-source attribution matrix.
+
+    `exhibit` = committed deterministic multi-mechanism artifact
+    (scripts/attribution_eval.py). `live` = attribution over THIS session's
+    twin + agentic worlds with the session ensemble/CaseManager, so the panel
+    reflects the real world in memory. Both are honest, schema-identical."""
+    exhibit = None
+    e_path = os.path.join(ARTIFACT_DIR, "attribution.json")
+    if os.path.exists(e_path):
+        try:
+            exhibit = json.load(open(e_path))
+        except Exception:                   # noqa: BLE001
+            exhibit = None
+
+    live = {}
+    if DEMO_STATE.get("ready"):
+        try:
+            from eval.attribution import build_attribution_matrix, \
+                combine_matrices
+            bt = DEMO_STATE["blue_team"]
+            cm = DEMO_STATE.get("case_manager")
+            twin_m = build_attribution_matrix(
+                DEMO_STATE["twin"].world, bt, case_manager=cm,
+                threshold=0.5, max_rows=1200, seed=42)
+            ag = _ensure_agentic()
+            sandbox = ag["sandbox"]
+            ag_m = build_attribution_matrix(
+                sandbox.world, bt, case_manager=None,
+                threshold=0.5, max_rows=1200, seed=42)
+            live = combine_matrices({"twin": twin_m, "agentic": ag_m})
+        except Exception as exc:            # noqa: BLE001
+            logger.warning("live attribution failed: %s", exc)
+
+    return {
+        "present": exhibit is not None,
+        "exhibit": exhibit,
+        "live": live or None,
+        "sources": ["XGB", "GNN", "OSINT", "sanctions"],
+    }
 
 
 @app.get("/api/sample-txs")

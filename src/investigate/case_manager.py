@@ -150,6 +150,37 @@ class CaseManager:
                 self.memory.attack_signatures),
         }
 
+    def evidence_flags_for(self, account_ids: List[str]) -> Dict[str, Dict]:
+        """Per-account (osint, sanctions) flags for the attribution panel.
+
+        Uses the SAME fixture dossiers + sanctions agent as the case path so
+        one provider feeds both signals; unknown accounts are simply unflagged
+        (honest coverage limits, never fabricated hits)."""
+        if not account_ids:
+            return {}
+        fx = self._fixtures()
+        flags: Dict[str, Dict] = {}
+        try:
+            agent = SanctionsAgent(fx, mode="fixture",
+                                   call_budget=max(1, len(account_ids) + 1),
+                                   watch_seed=self.seed)
+            for sid in account_ids:
+                d = fx.get(sid)
+                osint_flag = bool(d and (d.get("watch_flags")
+                                         or d.get("risk_state_at_enrichment")
+                                         != "low"))
+                sanc_flag = False
+                try:
+                    sres = agent.screen(sid)
+                    sanc_flag = sres.get("result") == "WATCH_HIT"
+                except Exception:                       # noqa: BLE001
+                    sanc_flag = False
+                flags[sid] = {"osint": osint_flag, "sanctions": sanc_flag}
+        except Exception:                               # noqa: BLE001
+            for sid in account_ids:
+                flags.setdefault(sid, {"osint": False, "sanctions": False})
+        return flags
+
     def run_case(self, case_id: str, tx_ids: List[str],
                  include_narrative: bool = True,
                  ) -> Dict[str, Any]:

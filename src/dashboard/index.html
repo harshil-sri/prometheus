@@ -1105,6 +1105,39 @@
       </div>
     </div>
 
+    <!-- Standout Panels: Timeline / RL negative-result / Attribution -->
+    <div class="grid grid-3" style="margin-bottom:16px;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Blind-Spot Timeline</div>
+          <div class="status-pill" id="timelineFp" style="font-size:10px;">—</div>
+        </div>
+        <div id="timelineChart" style="font-size:12px;">
+          <p style="color:var(--text-muted);">Run the 3-beat flywheel or scripts/timeline_eval.py to populate the feedback history.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">RL Kill-Criterion Result</div>
+          <div class="status-pill" id="rlPill" style="font-size:10px;">—</div>
+        </div>
+        <div id="rlStretchBody" style="font-size:13px; line-height:1.7;">
+          <p style="color:var(--text-muted);">Pre-registered RL stretch measurement not available.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Mechanism × Evidence-Source Attribution</div>
+          <div class="status-pill" id="attrFp" style="font-size:10px;">—</div>
+        </div>
+        <div id="attributionBody" style="font-size:12px;">
+          <p style="color:var(--text-muted);">Attribution matrix not available yet.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Diagnostic Details & Evidence Provenance -->
     <div class="grid grid-2">
       <div class="card">
@@ -1264,6 +1297,9 @@ async function initialize() {
     await loadGraph();
     await loadSamplePool();
     renderOODHeatmap();
+    renderTimeline();
+    renderRlStretch();
+    renderAttribution();
 
     // Default to a benign approved sample transaction on boot
     sampleTransaction('APPROVE');
@@ -1384,6 +1420,7 @@ async function runDemo() {
       renderReport(data.report);
       renderEval(data);
     }
+    renderTimeline();
 
     updateStatus('Flywheel Cycle Complete', 'green');
     logEvent(`3-Beat Flywheel: Beat 1 (${(data.beat1.recall * 100).toFixed(1)}%) → Beat 2 (${(data.beat2.recall * 100).toFixed(1)}%) → Beat 3 Held-Out (${(data.beat3.recall * 100).toFixed(1)}%)`, 'ok');
@@ -1587,6 +1624,140 @@ async function renderOODHeatmap() {
   } catch (e) {
     status.textContent = 'Load error';
     box.innerHTML = `<p style="color:var(--status-rose); font-size:13px;">OOD matrix unavailable: ${e.message}</p>`;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Standout Panels: Blind-Spot Timeline / RL Negative-Result / Attribution
+// ---------------------------------------------------------------------------
+async function renderTimeline() {
+  const box = $('timelineChart');
+  const pill = $('timelineFp');
+  try {
+    const data = await api('/api/timeline');
+    if (!data.present) {
+      pill.textContent = 'no data';
+      box.innerHTML = `<p style="color:var(--text-muted);">${data.note || 'Timeline not generated yet.'}</p>`;
+      return;
+    }
+    pill.textContent = `${data.total} cycles`;
+    const rows = (data.entries || []).map((e, i) => {
+      const spot = e.blind_spot || 'none';
+      const clean = spot === 'none';
+      const b = Math.round((e.recall_before || 0) * 100);
+      const a = Math.round((e.recall_after || 0) * 100);
+      const fixes = e.generated_fixes || 0;
+      return `<div style="display:flex; gap:10px; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px;">
+        <span style="color:var(--text-submuted); font-family:var(--font-mono); width:26px;">#${e.idx}</span>
+        <div style="flex:1;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+            <span class="status-pill" style="font-size:10px; color:${clean ? 'var(--status-green)' : 'var(--status-rose)'}; border:1px solid ${clean ? 'var(--status-green)' : 'var(--status-rose)'};">${spot}</span>
+            <span style="color:var(--text-muted);">${fixes} fixes</span>
+          </div>
+          <div style="display:flex; gap:6px; align-items:center; font-family:var(--font-mono);">
+            <span style="color:var(--text-submuted); width:34px;">${b}%</span>
+            <div style="flex:1; height:8px; background:var(--border); border-radius:4px; overflow:hidden;">
+              <div style="width:${b}%; height:100%; background:var(--accent-blue);"></div>
+            </div>
+          </div>
+          <div style="display:flex; gap:6px; align-items:center; font-family:var(--font-mono); margin-top:2px;">
+            <span style="color:var(--status-green); width:34px;">${a}%</span>
+            <div style="flex:1; height:8px; background:var(--border); border-radius:4px; overflow:hidden;">
+              <div style="width:${a}%; height:100%; background:${b === a ? 'var(--status-green)' : 'var(--status-green)'};"></div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    const legend = `retrain rounds used: ${(data.entries || []).map(e => e.retrain_rounds_used).join(' / ')} · unseen-generator recall after: ${(data.entries || []).map(e => Math.round((e.generalization_recall_unseen_generator || 0) * 100)).join('% / ')}%`;
+    box.innerHTML = `<div style="max-height:340px; overflow-y:auto;">${rows}</div>
+      <div style="margin-top:8px; color:var(--text-muted); font-size:11px;">${legend}</div>`;
+  } catch (e) {
+    pill.textContent = 'load error';
+    box.innerHTML = `<p style="color:var(--status-rose); font-size:13px;">${e.message}</p>`;
+  }
+}
+
+async function renderRlStretch() {
+  const box = $('rlStretchBody');
+  const pill = $('rlPill');
+  try {
+    const data = await api('/api/rl-stretch');
+    if (!data.present) {
+      pill.textContent = 'no data';
+      box.innerHTML = `<p style="color:var(--text-muted);">${data.note || 'RL stretch not measured yet.'}</p>`;
+      return;
+    }
+    const negative = data.honest_negative === true;
+    pill.textContent = negative ? 'Honest Negative ✓' : 'Shipped';
+    const crit = data.pre_registered_criterion || {};
+    const reg = data.registry_metrics || {};
+    let regHtml = '';
+    if (reg.converged !== undefined || reg.mean_evasion_improvement !== undefined) {
+      regHtml = `<div style="margin-top:8px; padding-top:6px; border-top:1px solid var(--border); color:var(--text-muted); font-size:11px;">
+        registry: converged=${reg.converged !== undefined ? reg.converged : '—'} · mean_evasion_improvement=${reg.mean_evasion_improvement !== undefined ? Number(reg.mean_evasion_improvement).toFixed(3) : '—'}</div>`;
+    }
+    const color = negative ? 'var(--status-green)' : 'var(--status-amber)';
+    box.innerHTML = `
+      <div style="font-size:24px; font-weight:700; font-family:var(--font-mono); color:${color};">${negative ? 'DO NOT SHIP' : 'SHIPPED'}</div>
+      <div style="margin:6px 0 4px; font-size:13px; color:var(--text-muted);">${(data.reason || '').replace(/</g, '&lt;')}</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:12px; margin-top:8px;">
+        <div><span style="color:var(--text-submuted);">Episodes run</span><br><strong class="mono">${data.episodes_run ?? '—'}</strong></div>
+        <div><span style="color:var(--text-submuted);">RL best mean evasion</span><br><strong class="mono">${data.rl_best_mean_evasion !== undefined ? Number(data.rl_best_mean_evasion).toFixed(3) : '—'}</strong></div>
+        <div><span style="color:var(--text-submuted);">Heuristic baseline</span><br><strong class="mono">${data.heuristic_baseline !== undefined ? Number(data.heuristic_baseline).toFixed(3) : '—'}</strong></div>
+        <div><span style="color:var(--text-submuted);">Criterion (evasion ≥)</span><br><strong class="mono">${crit.min_evasion !== undefined ? Number(crit.min_evasion).toFixed(3) : '—'}</strong></div>
+      </div>${regHtml}`;
+  } catch (e) {
+    pill.textContent = 'load error';
+    box.innerHTML = `<p style="color:var(--status-rose); font-size:13px;">${e.message}</p>`;
+  }
+}
+
+function attrHeatmapBody(matrix, mechanisms, sources, rates, margins, fp) {
+  const head = `<tr><th style="padding:6px 8px;">mechanism</th>${
+    sources.map(s => `<th style="padding:4px 8px; font-size:11px; color:var(--text-muted);">${s}</th>`).join('')
+  }<th style="padding:4px 8px; font-size:11px; color:var(--text-submuted);">caught</th></tr>`;
+  const rows = (mechanisms || []).map(m => {
+    const cells = sources.map(s => {
+      const r = ((rates[m] || {})[s]);
+      const pct = Number.isFinite(Number(r)) ? Math.round(Number(r) * 1000) / 10 : null;
+      const cell = pct === null
+        ? '<td style="padding:6px; text-align:center; color:var(--text-submuted);">&ndash;</td>'
+        : `<td title="caught ${m} txs whose sender also flagged ${s}" style="background:${pct >= 50 ? '#1f3d2b' : pct >= 20 ? '#3a3a1f' : '#2a2a2a'}; color:#e6e6e6; text-align:center; padding:6px 4px; font-family:var(--font-mono); font-size:11px;">${pct}%</td>`;
+      return cell;
+    }).join('');
+    const n = margins && margins[m] != null ? margins[m] : '—';
+    return `<tr><td style="padding:6px 8px; font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">${m}</td>${cells}<td style="padding:6px 8px; font-family:var(--font-mono); font-size:11px; color:var(--text-submuted);">${n}</td></tr>`;
+  }).join('');
+  return `<div style="max-height:260px; overflow-y:auto;"><table style="width:100%; border-collapse:collapse; border:1px solid var(--border-medium);">${head}${rows}</table></div>
+    <div style="margin-top:6px; color:var(--text-muted); font-size:11px;">fp ${(fp || '').slice(0, 8)}… · cell = caught attacks whose sender also flagged that evidence source</div>`;
+}
+
+async function renderAttribution() {
+  const box = $('attributionBody');
+  const pill = $('attrFp');
+  const SOURCES = ['XGB', 'GNN', 'OSINT', 'sanctions'];
+  try {
+    const data = await api('/api/attribution');
+    const ex = data.exhibit;
+    if (!ex) {
+      pill.textContent = 'no data';
+      box.innerHTML = `<p style="color:var(--text-muted);">Attribution artifact not committed — run scripts/attribution_eval.py.</p>`;
+      return;
+    }
+    pill.textContent = `exhibit fp ${(ex.fingerprint || '').slice(0, 8)}…`;
+    let html = `<div style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">EXHIBIT (committed artifact, seed ${ex.seed})</div>`;
+    html += attrHeatmapBody(ex.matrix, ex.mechanisms, SOURCES, ex.rates, ex.margins, ex.fingerprint);
+    if (data.live && data.live.mechanisms && data.live.mechanisms.length) {
+      html += `<div style="font-size:12px; font-weight:700; color:var(--accent-blue); margin:12px 0 4px;">LIVE (this session's twin + agentic worlds)</div>`;
+      html += attrHeatmapBody(data.live.matrix, data.live.mechanisms, SOURCES, data.live.rates, data.live.margins, data.live.fingerprint);
+    } else {
+      html += `<div style="margin-top:10px; color:var(--text-muted); font-size:11px;">live matrix computed after twin initialization (agentic world currently contributes 0 caught — honest zero).</div>`;
+    }
+    box.innerHTML = html;
+  } catch (e) {
+    pill.textContent = 'load error';
+    box.innerHTML = `<p style="color:var(--status-rose); font-size:13px;">${e.message}</p>`;
   }
 }
 
@@ -2295,6 +2466,9 @@ async function checkStatus() {
       await loadGraph();
       await loadSamplePool();
       await renderOODHeatmap();
+      renderTimeline();
+      renderRlStretch();
+      renderAttribution();
       sampleTransaction('APPROVE');
     }
   } catch (e) {}
