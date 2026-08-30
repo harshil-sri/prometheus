@@ -10,7 +10,12 @@ and OSINT dossier risk fields; C (campaign evidence) from repeat campaign
 fingerprints in three-class memory (see scoring.evidence_mapping).
 """
 
-# Default weights (can be fit via constrained regression — Phase 4)
+# Default weights — actually fit and persisted via scripts/fit_weights.py
+# (Phase 4 / implementation.md §2.2). The committed canonical artifact lives at
+# src/artifacts/structured_weights.json (schema prometheus.structured_weights.v2);
+# FittedStructuredScore.load() reads it at API init. The values below are the
+# pre-Phase-4 hand-picked defaults, retained as a baseline reference and as a
+# safe fallback if the artifact is ever missing.
 DEFAULT_WEIGHTS = {
     "w_t": 300.0,   # transaction evidence weight
     "w_g": 250.0,   # graph evidence weight
