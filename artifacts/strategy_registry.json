@@ -4,7 +4,7 @@
       "strategy_id": "GA_specspace",
       "mechanism": "genetic",
       "fingerprint": "2171287f045db215",
-      "registered_at": 1788002389.4389253,
+      "registered_at": 1788054634.2157824,
       "meta": {
         "population": 8,
         "max_generations": 5
@@ -20,7 +20,7 @@
       "strategy_id": "LLM_fallback_mix",
       "mechanism": "llm_strategist",
       "fingerprint": "5bf3fea14b76c70b",
-      "registered_at": 1788002389.4651477,
+      "registered_at": 1788054634.2188747,
       "meta": {
         "n_variants": 4
       },
@@ -34,8 +34,8 @@
     {
       "strategy_id": "ShadowPGD_replay_pool",
       "mechanism": "shadow_pgd",
-      "fingerprint": "1e8a8bc94f1e12a8",
-      "registered_at": 1788002389.9394724,
+      "fingerprint": "35b9637117a0fb9d",
+      "registered_at": 1788054635.567173,
       "meta": {
         "per_type_rows": [
           2,
@@ -45,15 +45,15 @@
         ]
       },
       "metrics": {
-        "distill_xgb_r2": 0.3483,
-        "distill_mlp_r2": 0.7397
+        "distill_xgb_r2": 0.0368,
+        "distill_mlp_r2": 0.7557
       }
     },
     {
       "strategy_id": "DQN_rl_stretch",
       "mechanism": "rl_stretch",
       "fingerprint": "6f97960171ad7add",
-      "registered_at": 1788002390.5528574,
+      "registered_at": 1788054636.866673,
       "meta": {
         "pre_registered": {
           "min_episodes": 50,

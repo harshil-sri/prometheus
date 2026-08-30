@@ -1,7 +1,7 @@
 {
   "schema": "prometheus.ood_matrix.v1",
-  "generated_at": "2026-08-29T11:19:51",
-  "elapsed_seconds": 0.92,
+  "generated_at": "2026-08-30T07:20:39",
+  "elapsed_seconds": 3.08,
   "config": {
     "schema": "prometheus.ood_matrix.v1",
     "seed": 42,
@@ -36,7 +36,7 @@
     },
     "genetic": {
       "A1": 0.2857,
-      "A3": 0.25,
+      "A3": 0.1875,
       "A4": 0.0,
       "A6": 0.0,
       "A2": 0.75,
@@ -56,7 +56,7 @@
       "A4": 0.0952,
       "A6": 0.0,
       "A2": 0.0,
-      "A5": 0.2727
+      "A5": 0.2273
     }
   },
   "cells": {
@@ -107,8 +107,8 @@
       },
       "A3": {
         "n_txs": 16,
-        "caught": 4,
-        "detection_rate": 0.25,
+        "caught": 3,
+        "detection_rate": 0.1875,
         "held_out": false
       },
       "A4": {
@@ -150,14 +150,14 @@
         "held_out": false
       },
       "A4": {
-        "n_txs": 6,
-        "caught": 6,
+        "n_txs": 2,
+        "caught": 2,
         "detection_rate": 1.0,
         "held_out": false
       },
       "A6": {
-        "n_txs": 1,
-        "caught": 1,
+        "n_txs": 3,
+        "caught": 3,
         "detection_rate": 1.0,
         "held_out": false
       },
@@ -207,8 +207,8 @@
       },
       "A5": {
         "n_txs": 22,
-        "caught": 6,
-        "detection_rate": 0.2727,
+        "caught": 5,
+        "detection_rate": 0.2273,
         "held_out": true
       }
     }
@@ -239,13 +239,13 @@
     },
     "overall_worst_case_detection": 0.0,
     "overall_exploitability": 1.0,
-    "mean_detection": 0.3182,
+    "mean_detection": 0.3137,
     "note": "exploitability is defined on the WORST case (law 8): averages hide the hole an attacker would find"
   },
-  "runtime_seconds": 3.35,
+  "runtime_seconds": 10.39,
   "platform": {
-    "python": "3.14.4",
-    "os": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.13.11",
+    "os": "Windows-11-10.0.26300-SP0",
     "cpu_only": true
   },
   "rl_stretch": {

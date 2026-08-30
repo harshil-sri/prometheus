@@ -2,14 +2,14 @@
   "schema": "prometheus.structured_weights.v2",
   "formula": "R = w_t\u00b7T + w_g\u00b7G + w_b\u00b7B + w_e\u00b7E + w_c\u00b7C \u2212 w_u\u00b7U",
   "coef": [
-    6.3764225,
-    1.22815204,
-    6.32178222,
+    7.784374831116415,
+    -1.116229374297683,
+    7.690999990979173,
     0.0,
-    -0.02532409,
-    -0.57004028
+    -1.7048183647875346,
+    -3.0735917629976686
   ],
-  "intercept": -6.517529,
+  "intercept": -3.523860274340969,
   "columns": [
     "xgb",
     "gnn",
@@ -19,24 +19,18 @@
     "spectral_star"
   ],
   "fit_meta": {
-    "n": 8022,
+    "n": 62591,
     "pos": 16,
     "fit_auc": 1.0,
-    "source": "fitted_in_sample",
-    "fit_config": {
-      "seed": 42,
-      "accounts": 500,
-      "merchants": 100,
-      "steps": 100
-    }
+    "source": "fitted_in_sample"
   },
   "w_formula": {
-    "w_t": 820.6283,
+    "w_t": 820.8718,
     "w_g": 0.0,
     "w_b": 0.0,
-    "w_e": 90.1183,
-    "w_c": 90.1183,
-    "w_u": 0.8649
+    "w_e": 90.0231,
+    "w_c": 90.0231,
+    "w_u": 0.918
   },
   "baseline_weights": {
     "w_t": 300.0,
@@ -57,7 +51,7 @@
     "real_row_column_std": {
       "T": 0.0447,
       "G": 0.1048,
-      "B": 0.0444,
+      "B": 0.0443,
       "E": 0.0,
       "C": 0.0,
       "U": 0.1044
@@ -66,9 +60,9 @@
       "E",
       "C"
     ],
-    "reachability_scale": 0.870482,
-    "max_raw": 1148.7889,
-    "residual": 704.439495,
+    "reachability_scale": 0.87048,
+    "max_raw": 1148.7919,
+    "residual": 702.72544,
     "grid": [
       {
         "t": 0.0,

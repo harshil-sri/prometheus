@@ -1,21 +1,21 @@
 {
   "schema": "prometheus.baseline_eval.v4",
-  "generated_at": "2026-08-29T14:43:32",
-  "seed": 7,
+  "generated_at": "2026-08-30T07:24:04",
+  "seed": 42,
   "platform": {
-    "python": "3.14.4",
-    "os": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.13.11",
+    "os": "Windows-11-10.0.26300-SP0",
     "cpu_only": true
   },
-  "runtime_seconds": 10.05,
+  "runtime_seconds": 12.37,
   "config": {
-    "num_accounts": 1200,
+    "num_accounts": 600,
     "num_merchants": 150,
-    "num_steps": 140,
+    "num_steps": 90,
     "boundary_fraction": 0.72,
     "folds": 4,
     "gnn_epochs": 30,
-    "eval_repeats": 5,
+    "eval_repeats": 70,
     "min_eval_fraud_per_type": 5,
     "funding_safety": 1.25,
     "replenish_repeats": false
@@ -26,37 +26,37 @@
       "A5"
     ],
     "held_out_mechanisms": [],
-    "seed": 7,
-    "fingerprint": "92835e3ac8fa434e6f6125f22d3b0a6250660d6ac15e3b546190e5c75a4f775d",
-    "locked_at": 1788014602.2266517,
+    "seed": 42,
+    "fingerprint": "292cc7f67639cea556948086f8303fb248249da14f45b3d4825cca8f0473a162",
+    "locked_at": 1788054831.995514,
     "axis_type_note": "held-out attack TYPES absent from every training fold",
     "axis_mechanism_note": "mechanism axis active; rule_compiler only mechanism until P4/P5 land"
   },
   "eval_population": {
-    "n_eval_rows": 7311,
-    "n_eval_fraud": 128,
-    "n_eval_normal": 7183,
-    "eval_fraud_prevalence": 0.017508,
+    "n_eval_rows": 4910,
+    "n_eval_fraud": 2111,
+    "n_eval_normal": 2799,
+    "eval_fraud_prevalence": 0.429939,
     "step_window": [
-      101,
-      169
+      65,
+      135
     ],
-    "cut_step": 101,
+    "cut_step": 65,
     "per_type_total_rows": {
-      "A1": 30,
-      "A2": 30,
-      "A3": 15,
-      "A4": 32,
-      "A5": 20,
-      "A6": 21
+      "A1": 426,
+      "A2": 420,
+      "A3": 211,
+      "A4": 494,
+      "A5": 560,
+      "A6": 284
     },
     "per_type_fraud_rows": {
-      "A1": 10,
-      "A2": 30,
-      "A3": 15,
-      "A4": 32,
-      "A5": 20,
-      "A6": 21
+      "A1": 142,
+      "A2": 420,
+      "A3": 211,
+      "A4": 494,
+      "A5": 560,
+      "A6": 284
     }
   },
   "funding": {
@@ -74,683 +74,3411 @@
     "reserved_pools": {
       "A5": {
         "amount": 300000.0,
-        "repeats": 5,
-        "required_balance": 1875000.0,
-        "n_accounts": 5,
-        "total_balance": 2730480.39,
-        "tier_100": 5,
-        "tier_50": 5,
-        "tier_20": 5
+        "repeats": 70,
+        "required_balance": 26250000.0,
+        "n_accounts": 70,
+        "total_balance": 33469781.06,
+        "tier_100": 70,
+        "tier_50": 70,
+        "tier_20": 70
       },
       "A4": {
         "amount": 200000.0,
-        "repeats": 5,
-        "required_balance": 1250000.0,
-        "n_accounts": 5,
-        "total_balance": 2586175.1,
-        "tier_100": 5,
-        "tier_50": 5,
-        "tier_20": 5
+        "repeats": 70,
+        "required_balance": 17500000.0,
+        "n_accounts": 70,
+        "total_balance": 29011638.43,
+        "tier_100": 70,
+        "tier_50": 70,
+        "tier_20": 70
       },
       "A6": {
         "amount": 150000.0,
-        "repeats": 5,
-        "required_balance": 937500.0,
-        "n_accounts": 5,
-        "total_balance": 2562396.35,
-        "tier_100": 5,
-        "tier_50": 5,
-        "tier_20": 5
+        "repeats": 70,
+        "required_balance": 13125000.0,
+        "n_accounts": 70,
+        "total_balance": 24795934.29,
+        "tier_100": 70,
+        "tier_50": 70,
+        "tier_20": 70
       },
       "A1": {
         "amount": 100000.0,
-        "repeats": 5,
-        "required_balance": 625000.0,
-        "n_accounts": 5,
-        "total_balance": 2541244.21,
-        "tier_100": 5,
-        "tier_50": 5,
-        "tier_20": 5
+        "repeats": 70,
+        "required_balance": 8750000.0,
+        "n_accounts": 70,
+        "total_balance": 20332511.65,
+        "tier_100": 70,
+        "tier_50": 70,
+        "tier_20": 70
       },
       "A2": {
         "amount": 50000.0,
-        "repeats": 5,
-        "required_balance": 312500.0,
-        "n_accounts": 5,
-        "total_balance": 2522704.81,
-        "tier_100": 5,
-        "tier_50": 5,
-        "tier_20": 5
+        "repeats": 70,
+        "required_balance": 4375000.0,
+        "n_accounts": 70,
+        "total_balance": 16320161.35,
+        "tier_100": 70,
+        "tier_50": 70,
+        "tier_20": 70
       },
       "A3": {
         "amount": 10.0,
-        "repeats": 5,
-        "required_balance": 62.5,
-        "n_accounts": 5,
-        "total_balance": 2503517.75,
-        "tier_100": 5,
-        "tier_50": 5,
-        "tier_20": 5
+        "repeats": 70,
+        "required_balance": 875.0,
+        "n_accounts": 70,
+        "total_balance": 11942668.21,
+        "tier_100": 70,
+        "tier_50": 70,
+        "tier_20": 70
       }
     },
     "observed_at_compile": {
       "A5": [
         {
-          "pool_n": 5,
-          "total_balance": 2730480.39,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2730480.39,
-          "tier_100": 4,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 69,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2730480.39,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 68,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2730480.39,
-          "tier_100": 4,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 67,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2730480.39,
-          "tier_100": 4,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 66,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 65,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 64,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 63,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 62,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 62,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 61,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 60,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 60,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 59,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 58,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 57,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 56,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 56,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 55,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 55,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 55,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 54,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 54,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 53,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 52,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 51,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 50,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 50,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 49,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 49,
+          "tier_50": 68,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 49,
+          "tier_50": 68,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 50,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 51,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 51,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 50,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 49,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 49,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 49,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 48,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 49,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 48,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 48,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 47,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 47,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 47,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 47,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 47,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 46,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 46,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 45,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 45,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 44,
+          "tier_50": 68,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 45,
+          "tier_50": 68,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 46,
+          "tier_50": 68,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 47,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 48,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 47,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 46,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 46,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 45,
+          "tier_50": 68,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 44,
+          "tier_50": 68,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 44,
+          "tier_50": 68,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 44,
+          "tier_50": 68,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 43,
+          "tier_50": 68,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 43,
+          "tier_50": 68,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 42,
+          "tier_50": 68,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 41,
+          "tier_50": 68,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 41,
+          "tier_50": 67,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 41,
+          "tier_50": 67,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 33469781.06,
+          "tier_100": 42,
+          "tier_50": 67,
+          "tier_20": 69
         }
       ],
       "A4": [
         {
-          "pool_n": 5,
-          "total_balance": 2586175.1,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 29011638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2446175.1,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 28871638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2306175.1,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 28731638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2166175.1,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 28591638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2026175.1,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 28451638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 28311638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 28171638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 28031638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 27891638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 27751638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 27611638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 27471638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 27331638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 27191638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 27051638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 26911638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 26771638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 26631638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 26491638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 26351638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 26211638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 26071638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 25931638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 25791638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 25651638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 25511638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 25371638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 25231638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 25091638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24951638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24811638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24671638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24531638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24391638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24251638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24111638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 23971638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 23831638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 23691638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 23551638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 23411638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 23271638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 23131638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 22991638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 22851638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 22711638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 22571638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 22431638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 22291638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 22151638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 22011638.43,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 21871638.43,
+          "tier_100": 67,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 21731638.43,
+          "tier_100": 67,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 21591638.43,
+          "tier_100": 67,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 21451638.43,
+          "tier_100": 67,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 21311638.43,
+          "tier_100": 67,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 21171638.43,
+          "tier_100": 67,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 21031638.43,
+          "tier_100": 66,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 20891638.43,
+          "tier_100": 66,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 20751638.43,
+          "tier_100": 65,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 20611638.43,
+          "tier_100": 65,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 20471638.43,
+          "tier_100": 64,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 20331638.43,
+          "tier_100": 64,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 20191638.43,
+          "tier_100": 64,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 20051638.43,
+          "tier_100": 64,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19911638.43,
+          "tier_100": 64,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19771638.43,
+          "tier_100": 63,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19631638.43,
+          "tier_100": 62,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19491638.43,
+          "tier_100": 61,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19351638.43,
+          "tier_100": 60,
+          "tier_50": 69,
+          "tier_20": 70
         }
       ],
       "A6": [
         {
-          "pool_n": 5,
-          "total_balance": 2562396.35,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2562396.35,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2562396.35,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2562396.35,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2562396.35,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 69,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 69,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 69,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 69,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 69,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 67,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 67,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 67,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 67,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 67,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 64,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 64,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 64,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 64,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 64,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 62,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 61,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 61,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 61,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 61,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 61,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 61,
+          "tier_50": 69,
+          "tier_20": 69
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 24795934.29,
+          "tier_100": 61,
+          "tier_50": 69,
+          "tier_20": 69
         }
       ],
       "A1": [
         {
-          "pool_n": 5,
-          "total_balance": 2541244.21,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 20332511.65,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2467272.75,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 20258693.9,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2394155.83,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 20185469.08,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2322262.93,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 20112471.75,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2249082.72,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 20040592.92,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19967418.09,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19892398.61,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19818573.76,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19744634.29,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19671048.42,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19595926.92,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19521625.85,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19448656.45,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19374297.2,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19302059.94,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19226756.29,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19155094.82,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19081678.16,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 19008742.93,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 18935085.79,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 18861734.24,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 18786585.71,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 18713494.8,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 18642138.64,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 18568988.41,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 18496188.84,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 18422267.2,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 18347364.2,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 18274705.92,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 18200770.45,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 18128545.11,
+          "tier_100": 69,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 18056357.86,
+          "tier_100": 68,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 17983417.53,
+          "tier_100": 68,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 17910902.28,
+          "tier_100": 67,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 17836841.75,
+          "tier_100": 67,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 17764243.73,
+          "tier_100": 67,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 17689737.27,
+          "tier_100": 67,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 17617267.54,
+          "tier_100": 67,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 17543727.15,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 17470656.33,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 17398014.02,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 17325984.08,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 17251450.32,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 17177343.56,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 17104243.14,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 17030274.71,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16958901.51,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16883816.51,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16809797.75,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16738256.85,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16665886.72,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16592902.42,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16519733.94,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16446076.22,
+          "tier_100": 66,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16374117.39,
+          "tier_100": 65,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16302503.97,
+          "tier_100": 65,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16228423.49,
+          "tier_100": 65,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16156238.68,
+          "tier_100": 65,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16082836.68,
+          "tier_100": 65,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16010039.04,
+          "tier_100": 65,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 15936685.96,
+          "tier_100": 65,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 15862788.5,
+          "tier_100": 65,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 15790545.06,
+          "tier_100": 65,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 15717356.89,
+          "tier_100": 65,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 15644163.2,
+          "tier_100": 65,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 15570355.18,
+          "tier_100": 65,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 15498295.32,
+          "tier_100": 65,
+          "tier_50": 69,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 15424804.31,
+          "tier_100": 64,
+          "tier_50": 68,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 15351082.81,
+          "tier_100": 64,
+          "tier_50": 68,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 15277981.01,
+          "tier_100": 64,
+          "tier_50": 68,
+          "tier_20": 70
         }
       ],
       "A2": [
         {
-          "pool_n": 5,
-          "total_balance": 2522704.81,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2522704.81,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2522704.81,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2522704.81,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2522704.81,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 16320161.35,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         }
       ],
       "A3": [
         {
-          "pool_n": 5,
-          "total_balance": 2503517.75,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 11942668.21,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2503516.94,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 11942668.01,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2503516.33,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 11942667.21,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2503515.67,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 11942666.59,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         },
         {
-          "pool_n": 5,
-          "total_balance": 2503515.23,
-          "tier_100": 5,
-          "tier_50": 5,
-          "tier_20": 5
+          "pool_n": 70,
+          "total_balance": 11942665.95,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942665.05,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942664.91,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942664.14,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942663.47,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942663.03,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942662.69,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942662.11,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942661.38,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942660.91,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942660.08,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942659.28,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942658.73,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942658.48,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942658.18,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942658.01,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942657.88,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942657.4,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942656.66,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942656.5,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942656.25,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942655.55,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942655.26,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942654.95,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942654.23,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942654.08,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942653.85,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942653.4,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942653.17,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942652.98,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942652.57,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942651.69,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942651.01,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942650.39,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942649.53,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942648.78,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942648.49,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942648.01,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942647.79,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942647.5,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942647.27,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942646.5,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942645.66,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942645.31,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942644.41,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942644.18,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942643.37,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942643.09,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942642.54,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942641.9,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942641.53,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942641.05,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942640.23,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942640.05,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942639.77,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942639.0,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942638.64,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942638.33,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942637.5,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942637.15,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942636.85,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942635.98,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942635.3,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942635.02,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942634.5,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
+        },
+        {
+          "pool_n": 70,
+          "total_balance": 11942633.65,
+          "tier_100": 70,
+          "tier_50": 70,
+          "tier_20": 70
         }
       ]
     }
   },
-  "generation_warnings": [
-    "type A1: n_fraud=10 < healthy 15 \u2014 per-type recall is noisy"
-  ],
+  "generation_warnings": [],
   "provenance": {
     "or_gate_removed": true,
     "meta_diagnostics": {
       "oof_used": true,
       "calibration_method": "isotonic",
       "coefficients": {
-        "xgb_score": 23.045569152481264,
-        "gnn_score": -1.3333657886859664,
-        "intercept": -3.935231664789045
+        "xgb_score": 12.469477461072618,
+        "gnn_score": -1.7656982949056834,
+        "intercept": -4.52701268839499
       }
     },
-    "n_train_rows": 19347,
-    "n_eval_rows": 7311,
+    "n_train_rows": 6213,
+    "n_eval_rows": 4910,
     "n_features": 20,
-    "train_fraud_rows": 45,
-    "eval_fraud_rows": 128
+    "train_fraud_rows": 21,
+    "eval_fraud_rows": 2111
   },
   "headline": {
     "metric": "meta PR-AUC @ 0.05 prevalence (fixed prevalence, cross-config comparable)",
-    "pr_auc": 0.8078403862446836,
-    "overall_meta_pr_auc": 0.7722621613688759,
-    "overall_xgb_pr_auc": 0.8349891184080194,
-    "eval_fraud_prevalence": 0.017508
+    "pr_auc": 0.9431433693900625,
+    "overall_meta_pr_auc": 0.9431433693900625,
+    "overall_xgb_pr_auc": 0.9888221035874858,
+    "eval_fraud_prevalence": 0.429939
   },
   "honest_holdout_metrics": {
     "meta": {
       "multi_prevalence": {
         "0.0001": {
-          "pr_auc": 0.7722621613688759,
-          "n_samples": 7311,
-          "n_fraud": 128,
-          "recall_at_1pct": 0.5547,
-          "precision_at_1pct": 0.9726,
-          "false_decline_rate_1pct": 0.000274,
-          "recall_at_2pct": 0.7656,
-          "precision_at_2pct": 0.6712,
-          "false_decline_rate_2pct": 0.006565,
-          "recall_at_5pct": 0.7656,
-          "precision_at_5pct": 0.2685,
-          "false_decline_rate_5pct": 0.03652,
-          "recall_at_10pct": 0.7656,
-          "precision_at_10pct": 0.1341,
-          "false_decline_rate_10pct": 0.086582,
-          "elkan_threshold": 0.0909,
-          "optimal_threshold": 0.5247,
-          "min_cost": 303.0,
-          "cost_per_prevented_fraud": 2.37
-        },
-        "0.0005": {
-          "pr_auc": 0.7722621613688759,
-          "n_samples": 7311,
-          "n_fraud": 128,
-          "recall_at_1pct": 0.5547,
-          "precision_at_1pct": 0.9726,
-          "false_decline_rate_1pct": 0.000274,
-          "recall_at_2pct": 0.7656,
-          "precision_at_2pct": 0.6712,
-          "false_decline_rate_2pct": 0.006565,
-          "recall_at_5pct": 0.7656,
-          "precision_at_5pct": 0.2685,
-          "false_decline_rate_5pct": 0.03652,
-          "recall_at_10pct": 0.7656,
-          "precision_at_10pct": 0.1341,
-          "false_decline_rate_10pct": 0.086582,
-          "elkan_threshold": 0.0909,
-          "optimal_threshold": 0.5247,
-          "min_cost": 303.0,
-          "cost_per_prevented_fraud": 2.37
-        },
-        "0.001": {
-          "pr_auc": 0.7722621613688759,
-          "n_samples": 7311,
-          "n_fraud": 128,
-          "recall_at_1pct": 0.5547,
-          "precision_at_1pct": 0.9726,
-          "false_decline_rate_1pct": 0.000274,
-          "recall_at_2pct": 0.7656,
-          "precision_at_2pct": 0.6712,
-          "false_decline_rate_2pct": 0.006565,
-          "recall_at_5pct": 0.7656,
-          "precision_at_5pct": 0.2685,
-          "false_decline_rate_5pct": 0.03652,
-          "recall_at_10pct": 0.7656,
-          "precision_at_10pct": 0.1341,
-          "false_decline_rate_10pct": 0.086582,
-          "elkan_threshold": 0.0909,
-          "optimal_threshold": 0.5247,
-          "min_cost": 303.0,
-          "cost_per_prevented_fraud": 2.37
-        },
-        "0.005": {
-          "pr_auc": 0.7722621613688759,
-          "n_samples": 7311,
-          "n_fraud": 128,
-          "recall_at_1pct": 0.5547,
-          "precision_at_1pct": 0.9726,
-          "false_decline_rate_1pct": 0.000274,
-          "recall_at_2pct": 0.7656,
-          "precision_at_2pct": 0.6712,
-          "false_decline_rate_2pct": 0.006565,
-          "recall_at_5pct": 0.7656,
-          "precision_at_5pct": 0.2685,
-          "false_decline_rate_5pct": 0.03652,
-          "recall_at_10pct": 0.7656,
-          "precision_at_10pct": 0.1341,
-          "false_decline_rate_10pct": 0.086582,
-          "elkan_threshold": 0.0909,
-          "optimal_threshold": 0.5247,
-          "min_cost": 303.0,
-          "cost_per_prevented_fraud": 2.37
-        },
-        "0.01": {
-          "pr_auc": 0.7722621613688759,
-          "n_samples": 7311,
-          "n_fraud": 128,
-          "recall_at_1pct": 0.5547,
-          "precision_at_1pct": 0.9726,
-          "false_decline_rate_1pct": 0.000274,
-          "recall_at_2pct": 0.7656,
-          "precision_at_2pct": 0.6712,
-          "false_decline_rate_2pct": 0.006565,
-          "recall_at_5pct": 0.7656,
-          "precision_at_5pct": 0.2685,
-          "false_decline_rate_5pct": 0.03652,
-          "recall_at_10pct": 0.7656,
-          "precision_at_10pct": 0.1341,
-          "false_decline_rate_10pct": 0.086582,
-          "elkan_threshold": 0.0909,
-          "optimal_threshold": 0.5247,
-          "min_cost": 303.0,
-          "cost_per_prevented_fraud": 2.37
-        },
-        "0.05": {
-          "pr_auc": 0.8078403862446836,
-          "n_samples": 2559,
-          "n_fraud": 128,
-          "recall_at_1pct": 0.1953,
+          "pr_auc": 0.9431433693900625,
+          "n_samples": 4910,
+          "n_fraud": 2111,
+          "recall_at_1pct": 0.0232,
           "precision_at_1pct": 1.0,
           "false_decline_rate_1pct": 0.0,
-          "recall_at_2pct": 0.3984,
+          "recall_at_2pct": 0.0464,
           "precision_at_2pct": 1.0,
           "false_decline_rate_2pct": 0.0,
-          "recall_at_5pct": 0.7656,
-          "precision_at_5pct": 0.7717,
-          "false_decline_rate_5pct": 0.011333,
-          "recall_at_10pct": 0.7656,
-          "precision_at_10pct": 0.3843,
-          "false_decline_rate_10pct": 0.061352,
+          "recall_at_5pct": 0.1161,
+          "precision_at_5pct": 1.0,
+          "false_decline_rate_5pct": 0.0,
+          "recall_at_10pct": 0.2326,
+          "precision_at_10pct": 1.0,
+          "false_decline_rate_10pct": 0.0,
           "elkan_threshold": 0.0909,
           "optimal_threshold": 0.01,
-          "min_cost": 302.0,
-          "cost_per_prevented_fraud": 2.36
+          "min_cost": 4211.0,
+          "cost_per_prevented_fraud": 1.99
+        },
+        "0.0005": {
+          "pr_auc": 0.9431433693900625,
+          "n_samples": 4910,
+          "n_fraud": 2111,
+          "recall_at_1pct": 0.0232,
+          "precision_at_1pct": 1.0,
+          "false_decline_rate_1pct": 0.0,
+          "recall_at_2pct": 0.0464,
+          "precision_at_2pct": 1.0,
+          "false_decline_rate_2pct": 0.0,
+          "recall_at_5pct": 0.1161,
+          "precision_at_5pct": 1.0,
+          "false_decline_rate_5pct": 0.0,
+          "recall_at_10pct": 0.2326,
+          "precision_at_10pct": 1.0,
+          "false_decline_rate_10pct": 0.0,
+          "elkan_threshold": 0.0909,
+          "optimal_threshold": 0.01,
+          "min_cost": 4211.0,
+          "cost_per_prevented_fraud": 1.99
+        },
+        "0.001": {
+          "pr_auc": 0.9431433693900625,
+          "n_samples": 4910,
+          "n_fraud": 2111,
+          "recall_at_1pct": 0.0232,
+          "precision_at_1pct": 1.0,
+          "false_decline_rate_1pct": 0.0,
+          "recall_at_2pct": 0.0464,
+          "precision_at_2pct": 1.0,
+          "false_decline_rate_2pct": 0.0,
+          "recall_at_5pct": 0.1161,
+          "precision_at_5pct": 1.0,
+          "false_decline_rate_5pct": 0.0,
+          "recall_at_10pct": 0.2326,
+          "precision_at_10pct": 1.0,
+          "false_decline_rate_10pct": 0.0,
+          "elkan_threshold": 0.0909,
+          "optimal_threshold": 0.01,
+          "min_cost": 4211.0,
+          "cost_per_prevented_fraud": 1.99
+        },
+        "0.005": {
+          "pr_auc": 0.9431433693900625,
+          "n_samples": 4910,
+          "n_fraud": 2111,
+          "recall_at_1pct": 0.0232,
+          "precision_at_1pct": 1.0,
+          "false_decline_rate_1pct": 0.0,
+          "recall_at_2pct": 0.0464,
+          "precision_at_2pct": 1.0,
+          "false_decline_rate_2pct": 0.0,
+          "recall_at_5pct": 0.1161,
+          "precision_at_5pct": 1.0,
+          "false_decline_rate_5pct": 0.0,
+          "recall_at_10pct": 0.2326,
+          "precision_at_10pct": 1.0,
+          "false_decline_rate_10pct": 0.0,
+          "elkan_threshold": 0.0909,
+          "optimal_threshold": 0.01,
+          "min_cost": 4211.0,
+          "cost_per_prevented_fraud": 1.99
+        },
+        "0.01": {
+          "pr_auc": 0.9431433693900625,
+          "n_samples": 4910,
+          "n_fraud": 2111,
+          "recall_at_1pct": 0.0232,
+          "precision_at_1pct": 1.0,
+          "false_decline_rate_1pct": 0.0,
+          "recall_at_2pct": 0.0464,
+          "precision_at_2pct": 1.0,
+          "false_decline_rate_2pct": 0.0,
+          "recall_at_5pct": 0.1161,
+          "precision_at_5pct": 1.0,
+          "false_decline_rate_5pct": 0.0,
+          "recall_at_10pct": 0.2326,
+          "precision_at_10pct": 1.0,
+          "false_decline_rate_10pct": 0.0,
+          "elkan_threshold": 0.0909,
+          "optimal_threshold": 0.01,
+          "min_cost": 4211.0,
+          "cost_per_prevented_fraud": 1.99
+        },
+        "0.05": {
+          "pr_auc": 0.9431433693900625,
+          "n_samples": 4910,
+          "n_fraud": 2111,
+          "recall_at_1pct": 0.0232,
+          "precision_at_1pct": 1.0,
+          "false_decline_rate_1pct": 0.0,
+          "recall_at_2pct": 0.0464,
+          "precision_at_2pct": 1.0,
+          "false_decline_rate_2pct": 0.0,
+          "recall_at_5pct": 0.1161,
+          "precision_at_5pct": 1.0,
+          "false_decline_rate_5pct": 0.0,
+          "recall_at_10pct": 0.2326,
+          "precision_at_10pct": 1.0,
+          "false_decline_rate_10pct": 0.0,
+          "elkan_threshold": 0.0909,
+          "optimal_threshold": 0.01,
+          "min_cost": 4211.0,
+          "cost_per_prevented_fraud": 1.99
         }
       },
       "overall": {
-        "pr_auc": 0.7722621613688759,
-        "n_samples": 7311,
-        "n_fraud": 128,
-        "recall_at_1pct": 0.5469,
-        "precision_at_1pct": 0.9589,
-        "false_decline_rate_1pct": 0.00041,
-        "recall_at_2pct": 0.7656,
-        "precision_at_2pct": 0.6712,
-        "false_decline_rate_2pct": 0.006565,
-        "recall_at_5pct": 0.7656,
-        "precision_at_5pct": 0.2685,
-        "false_decline_rate_5pct": 0.03652,
-        "recall_at_10pct": 0.7891,
-        "precision_at_10pct": 0.1382,
-        "false_decline_rate_10pct": 0.086172,
+        "pr_auc": 0.9431433693900625,
+        "n_samples": 4910,
+        "n_fraud": 2111,
+        "recall_at_1pct": 0.0232,
+        "precision_at_1pct": 1.0,
+        "false_decline_rate_1pct": 0.0,
+        "recall_at_2pct": 0.0464,
+        "precision_at_2pct": 1.0,
+        "false_decline_rate_2pct": 0.0,
+        "recall_at_5pct": 0.1161,
+        "precision_at_5pct": 1.0,
+        "false_decline_rate_5pct": 0.0,
+        "recall_at_10pct": 0.2326,
+        "precision_at_10pct": 1.0,
+        "false_decline_rate_10pct": 0.0,
         "elkan_threshold": 0.0909,
-        "optimal_threshold": 0.5247,
-        "min_cost": 303.0,
-        "cost_per_prevented_fraud": 2.37
+        "optimal_threshold": 0.01,
+        "min_cost": 4211.0,
+        "cost_per_prevented_fraud": 1.99
       },
-      "n_samples": 7311,
-      "n_fraud": 128,
-      "fraud_ratio": 0.017508,
-      "mean_score": 0.0132
+      "n_samples": 4910,
+      "n_fraud": 2111,
+      "fraud_ratio": 0.429939,
+      "mean_score": 0.3078
     },
     "xgb_only_baseline": {
       "multi_prevalence": {
         "0.0001": {
-          "pr_auc": 0.8349891184080194,
-          "n_samples": 7311,
-          "n_fraud": 128,
-          "recall_at_1pct": 0.5703,
+          "pr_auc": 0.9888221035874858,
+          "n_samples": 4910,
+          "n_fraud": 2111,
+          "recall_at_1pct": 0.0232,
           "precision_at_1pct": 1.0,
           "false_decline_rate_1pct": 0.0,
-          "recall_at_2pct": 0.7656,
-          "precision_at_2pct": 0.6712,
-          "false_decline_rate_2pct": 0.006565,
-          "recall_at_5pct": 0.9062,
-          "precision_at_5pct": 0.3178,
-          "false_decline_rate_5pct": 0.034058,
-          "recall_at_10pct": 1.0,
-          "precision_at_10pct": 0.1751,
-          "false_decline_rate_10pct": 0.082478,
-          "elkan_threshold": 0.0909,
-          "optimal_threshold": 0.8613,
-          "min_cost": 303.0,
-          "cost_per_prevented_fraud": 2.37
-        },
-        "0.0005": {
-          "pr_auc": 0.8349891184080194,
-          "n_samples": 7311,
-          "n_fraud": 128,
-          "recall_at_1pct": 0.5703,
-          "precision_at_1pct": 1.0,
-          "false_decline_rate_1pct": 0.0,
-          "recall_at_2pct": 0.7656,
-          "precision_at_2pct": 0.6712,
-          "false_decline_rate_2pct": 0.006565,
-          "recall_at_5pct": 0.9062,
-          "precision_at_5pct": 0.3178,
-          "false_decline_rate_5pct": 0.034058,
-          "recall_at_10pct": 1.0,
-          "precision_at_10pct": 0.1751,
-          "false_decline_rate_10pct": 0.082478,
-          "elkan_threshold": 0.0909,
-          "optimal_threshold": 0.8613,
-          "min_cost": 303.0,
-          "cost_per_prevented_fraud": 2.37
-        },
-        "0.001": {
-          "pr_auc": 0.8349891184080194,
-          "n_samples": 7311,
-          "n_fraud": 128,
-          "recall_at_1pct": 0.5703,
-          "precision_at_1pct": 1.0,
-          "false_decline_rate_1pct": 0.0,
-          "recall_at_2pct": 0.7656,
-          "precision_at_2pct": 0.6712,
-          "false_decline_rate_2pct": 0.006565,
-          "recall_at_5pct": 0.9062,
-          "precision_at_5pct": 0.3178,
-          "false_decline_rate_5pct": 0.034058,
-          "recall_at_10pct": 1.0,
-          "precision_at_10pct": 0.1751,
-          "false_decline_rate_10pct": 0.082478,
-          "elkan_threshold": 0.0909,
-          "optimal_threshold": 0.8613,
-          "min_cost": 303.0,
-          "cost_per_prevented_fraud": 2.37
-        },
-        "0.005": {
-          "pr_auc": 0.8349891184080194,
-          "n_samples": 7311,
-          "n_fraud": 128,
-          "recall_at_1pct": 0.5703,
-          "precision_at_1pct": 1.0,
-          "false_decline_rate_1pct": 0.0,
-          "recall_at_2pct": 0.7656,
-          "precision_at_2pct": 0.6712,
-          "false_decline_rate_2pct": 0.006565,
-          "recall_at_5pct": 0.9062,
-          "precision_at_5pct": 0.3178,
-          "false_decline_rate_5pct": 0.034058,
-          "recall_at_10pct": 1.0,
-          "precision_at_10pct": 0.1751,
-          "false_decline_rate_10pct": 0.082478,
-          "elkan_threshold": 0.0909,
-          "optimal_threshold": 0.8613,
-          "min_cost": 303.0,
-          "cost_per_prevented_fraud": 2.37
-        },
-        "0.01": {
-          "pr_auc": 0.8349891184080194,
-          "n_samples": 7311,
-          "n_fraud": 128,
-          "recall_at_1pct": 0.5703,
-          "precision_at_1pct": 1.0,
-          "false_decline_rate_1pct": 0.0,
-          "recall_at_2pct": 0.7656,
-          "precision_at_2pct": 0.6712,
-          "false_decline_rate_2pct": 0.006565,
-          "recall_at_5pct": 0.9062,
-          "precision_at_5pct": 0.3178,
-          "false_decline_rate_5pct": 0.034058,
-          "recall_at_10pct": 1.0,
-          "precision_at_10pct": 0.1751,
-          "false_decline_rate_10pct": 0.082478,
-          "elkan_threshold": 0.0909,
-          "optimal_threshold": 0.8613,
-          "min_cost": 303.0,
-          "cost_per_prevented_fraud": 2.37
-        },
-        "0.05": {
-          "pr_auc": 0.9060534425507019,
-          "n_samples": 2559,
-          "n_fraud": 128,
-          "recall_at_1pct": 0.1953,
-          "precision_at_1pct": 1.0,
-          "false_decline_rate_1pct": 0.0,
-          "recall_at_2pct": 0.3984,
+          "recall_at_2pct": 0.0464,
           "precision_at_2pct": 1.0,
           "false_decline_rate_2pct": 0.0,
-          "recall_at_5pct": 0.7656,
-          "precision_at_5pct": 0.7717,
-          "false_decline_rate_5pct": 0.011333,
-          "recall_at_10pct": 1.0,
-          "precision_at_10pct": 0.502,
-          "false_decline_rate_10pct": 0.049629,
+          "recall_at_5pct": 0.1161,
+          "precision_at_5pct": 1.0,
+          "false_decline_rate_5pct": 0.0,
+          "recall_at_10pct": 0.2326,
+          "precision_at_10pct": 1.0,
+          "false_decline_rate_10pct": 0.0,
           "elkan_threshold": 0.0909,
-          "optimal_threshold": 0.0694,
-          "min_cost": 302.0,
-          "cost_per_prevented_fraud": 2.36
+          "optimal_threshold": 0.0298,
+          "min_cost": 4201.0,
+          "cost_per_prevented_fraud": 1.99
+        },
+        "0.0005": {
+          "pr_auc": 0.9888221035874858,
+          "n_samples": 4910,
+          "n_fraud": 2111,
+          "recall_at_1pct": 0.0232,
+          "precision_at_1pct": 1.0,
+          "false_decline_rate_1pct": 0.0,
+          "recall_at_2pct": 0.0464,
+          "precision_at_2pct": 1.0,
+          "false_decline_rate_2pct": 0.0,
+          "recall_at_5pct": 0.1161,
+          "precision_at_5pct": 1.0,
+          "false_decline_rate_5pct": 0.0,
+          "recall_at_10pct": 0.2326,
+          "precision_at_10pct": 1.0,
+          "false_decline_rate_10pct": 0.0,
+          "elkan_threshold": 0.0909,
+          "optimal_threshold": 0.0298,
+          "min_cost": 4201.0,
+          "cost_per_prevented_fraud": 1.99
+        },
+        "0.001": {
+          "pr_auc": 0.9888221035874858,
+          "n_samples": 4910,
+          "n_fraud": 2111,
+          "recall_at_1pct": 0.0232,
+          "precision_at_1pct": 1.0,
+          "false_decline_rate_1pct": 0.0,
+          "recall_at_2pct": 0.0464,
+          "precision_at_2pct": 1.0,
+          "false_decline_rate_2pct": 0.0,
+          "recall_at_5pct": 0.1161,
+          "precision_at_5pct": 1.0,
+          "false_decline_rate_5pct": 0.0,
+          "recall_at_10pct": 0.2326,
+          "precision_at_10pct": 1.0,
+          "false_decline_rate_10pct": 0.0,
+          "elkan_threshold": 0.0909,
+          "optimal_threshold": 0.0298,
+          "min_cost": 4201.0,
+          "cost_per_prevented_fraud": 1.99
+        },
+        "0.005": {
+          "pr_auc": 0.9888221035874858,
+          "n_samples": 4910,
+          "n_fraud": 2111,
+          "recall_at_1pct": 0.0232,
+          "precision_at_1pct": 1.0,
+          "false_decline_rate_1pct": 0.0,
+          "recall_at_2pct": 0.0464,
+          "precision_at_2pct": 1.0,
+          "false_decline_rate_2pct": 0.0,
+          "recall_at_5pct": 0.1161,
+          "precision_at_5pct": 1.0,
+          "false_decline_rate_5pct": 0.0,
+          "recall_at_10pct": 0.2326,
+          "precision_at_10pct": 1.0,
+          "false_decline_rate_10pct": 0.0,
+          "elkan_threshold": 0.0909,
+          "optimal_threshold": 0.0298,
+          "min_cost": 4201.0,
+          "cost_per_prevented_fraud": 1.99
+        },
+        "0.01": {
+          "pr_auc": 0.9888221035874858,
+          "n_samples": 4910,
+          "n_fraud": 2111,
+          "recall_at_1pct": 0.0232,
+          "precision_at_1pct": 1.0,
+          "false_decline_rate_1pct": 0.0,
+          "recall_at_2pct": 0.0464,
+          "precision_at_2pct": 1.0,
+          "false_decline_rate_2pct": 0.0,
+          "recall_at_5pct": 0.1161,
+          "precision_at_5pct": 1.0,
+          "false_decline_rate_5pct": 0.0,
+          "recall_at_10pct": 0.2326,
+          "precision_at_10pct": 1.0,
+          "false_decline_rate_10pct": 0.0,
+          "elkan_threshold": 0.0909,
+          "optimal_threshold": 0.0298,
+          "min_cost": 4201.0,
+          "cost_per_prevented_fraud": 1.99
+        },
+        "0.05": {
+          "pr_auc": 0.9888221035874858,
+          "n_samples": 4910,
+          "n_fraud": 2111,
+          "recall_at_1pct": 0.0232,
+          "precision_at_1pct": 1.0,
+          "false_decline_rate_1pct": 0.0,
+          "recall_at_2pct": 0.0464,
+          "precision_at_2pct": 1.0,
+          "false_decline_rate_2pct": 0.0,
+          "recall_at_5pct": 0.1161,
+          "precision_at_5pct": 1.0,
+          "false_decline_rate_5pct": 0.0,
+          "recall_at_10pct": 0.2326,
+          "precision_at_10pct": 1.0,
+          "false_decline_rate_10pct": 0.0,
+          "elkan_threshold": 0.0909,
+          "optimal_threshold": 0.0298,
+          "min_cost": 4201.0,
+          "cost_per_prevented_fraud": 1.99
         }
       },
       "overall": {
-        "pr_auc": 0.8349891184080194,
-        "n_samples": 7311,
-        "n_fraud": 128,
-        "recall_at_1pct": 0.5703,
+        "pr_auc": 0.9888221035874858,
+        "n_samples": 4910,
+        "n_fraud": 2111,
+        "recall_at_1pct": 0.0232,
         "precision_at_1pct": 1.0,
         "false_decline_rate_1pct": 0.0,
-        "recall_at_2pct": 0.7656,
-        "precision_at_2pct": 0.6712,
-        "false_decline_rate_2pct": 0.006565,
-        "recall_at_5pct": 0.9062,
-        "precision_at_5pct": 0.3178,
-        "false_decline_rate_5pct": 0.034058,
-        "recall_at_10pct": 1.0,
-        "precision_at_10pct": 0.1751,
-        "false_decline_rate_10pct": 0.082478,
+        "recall_at_2pct": 0.0464,
+        "precision_at_2pct": 1.0,
+        "false_decline_rate_2pct": 0.0,
+        "recall_at_5pct": 0.1161,
+        "precision_at_5pct": 1.0,
+        "false_decline_rate_5pct": 0.0,
+        "recall_at_10pct": 0.2326,
+        "precision_at_10pct": 1.0,
+        "false_decline_rate_10pct": 0.0,
         "elkan_threshold": 0.0909,
-        "optimal_threshold": 0.8613,
-        "min_cost": 303.0,
-        "cost_per_prevented_fraud": 2.37
+        "optimal_threshold": 0.0298,
+        "min_cost": 4201.0,
+        "cost_per_prevented_fraud": 1.99
       },
-      "n_samples": 7311,
-      "n_fraud": 128,
-      "fraud_ratio": 0.017508,
-      "mean_score": 0.0139
+      "n_samples": 4910,
+      "n_fraud": 2111,
+      "fraud_ratio": 0.429939,
+      "mean_score": 0.3146
     }
   },
   "per_attack_type": {
     "A1": {
-      "n_txs": 30,
-      "n_fraud_txs": 10,
+      "n_txs": 426,
+      "n_fraud_txs": 142,
       "is_held_out": false,
       "mean_score": 1.0,
       "median_score": 1.0,
       "recall_above_legit_p95": 1.0,
-      "legit_p95_threshold": 0.00152207
+      "legit_p95_threshold": 0.0
     },
     "A2": {
-      "n_txs": 30,
-      "n_fraud_txs": 30,
+      "n_txs": 420,
+      "n_fraud_txs": 420,
       "is_held_out": true,
       "mean_score": 0.0,
       "median_score": 0.0,
       "recall_above_legit_p95": 0.0,
-      "legit_p95_threshold": 0.00152207
+      "legit_p95_threshold": 0.0
     },
     "A3": {
-      "n_txs": 15,
-      "n_fraud_txs": 15,
+      "n_txs": 211,
+      "n_fraud_txs": 211,
       "is_held_out": false,
-      "mean_score": 0.7141,
-      "median_score": 0.6441,
+      "mean_score": 0.2943,
+      "median_score": 0.0817,
       "recall_above_legit_p95": 1.0,
-      "legit_p95_threshold": 0.00152207
+      "legit_p95_threshold": 0.0
     },
     "A4": {
-      "n_txs": 32,
-      "n_fraud_txs": 32,
+      "n_txs": 494,
+      "n_fraud_txs": 494,
       "is_held_out": false,
-      "mean_score": 0.9826,
+      "mean_score": 0.9771,
       "median_score": 1.0,
       "recall_above_legit_p95": 1.0,
-      "legit_p95_threshold": 0.00152207
+      "legit_p95_threshold": 0.0
     },
     "A5": {
-      "n_txs": 20,
-      "n_fraud_txs": 20,
+      "n_txs": 560,
+      "n_fraud_txs": 560,
       "is_held_out": true,
-      "mean_score": 0.9722,
-      "median_score": 1.0,
-      "recall_above_legit_p95": 1.0,
-      "legit_p95_threshold": 0.00152207
-    },
-    "A6": {
-      "n_txs": 21,
-      "n_fraud_txs": 21,
-      "is_held_out": false,
       "mean_score": 1.0,
       "median_score": 1.0,
       "recall_above_legit_p95": 1.0,
-      "legit_p95_threshold": 0.00152207
+      "legit_p95_threshold": 0.0
+    },
+    "A6": {
+      "n_txs": 284,
+      "n_fraud_txs": 284,
+      "is_held_out": false,
+      "mean_score": 0.9307,
+      "median_score": 1.0,
+      "recall_above_legit_p95": 1.0,
+      "legit_p95_threshold": 0.0
     }
   }
 }
