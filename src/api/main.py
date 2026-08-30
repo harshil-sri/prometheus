@@ -26,11 +26,12 @@ from twin.twin import FinancialDigitalTwin
 from twin.typologies import run_typology
 from attack.compiler import AttackCompiler
 from attack.benchmark_attacks import BENCHMARK_ATTACKS, HELD_OUT_ATTACKS, TRAINABLE_ATTACKS, generate_training_attacks
+from attack.funding import reserve_funding_pools, SAFETY_DEFAULT
 from blue.ensemble import BlueTeamEnsemble
 from sensitivity.engine import SensitivityEngine
 from feedback.loop import FeedbackLoop
 from scoring.structured_score import (
-    compute_structured_score, score_from_ml_probs, get_band, get_band_color,
+    compute_structured_score, get_band, get_band_color,
     FittedStructuredScore, DEFAULT_WEIGHTS_PATH,
 )
 from eval.harness import full_report, multi_prevalence_eval
@@ -77,6 +78,7 @@ DEMO_STATE = {
     "case_manager": None,
     "event_log": [],
     "agentic": None,
+    "funding": None,
     "ready": False,
 }
 
@@ -320,6 +322,40 @@ def initialize(req: InitRequest = None,
 
         compiler = AttackCompiler(twin, seed=seed)
         generate_training_attacks(compiler, twin.world)
+
+        # Phase 2/audit fix P2-1c: build the per-attack-type funding
+        # reservation (a pure function of the world + per-type spec), so the
+        # /api/funding endpoint can prove the ring-fence is live and any
+        # downstream eval call has the disjoint pools available. The init
+        # path itself does NOT use the funded pools (demo), but the
+        # reservation surfaces in DEMO_STATE for inspection and any later
+        # /api/eval call. (EVAL_TYPES covers A1..A6 incl. held-out A2/A5 so
+        # the diagnostic mirrors the per-eval shape.)
+        funding_specs = {aid: BENCHMARK_ATTACKS[aid] for aid in
+                          ("A1", "A2", "A3", "A4", "A5", "A6")}
+        funding = reserve_funding_pools(
+            twin.world, funding_specs, eval_repeats=1,
+            safety=SAFETY_DEFAULT,
+        )
+        DEMO_STATE["funding"] = {
+            "present": True,
+            "safety": funding.safety,
+            "exec_order": list(funding.order),
+            "warnings": list(funding.warnings),
+            "reserved_pools": {
+                aid: {
+                    "amount": funding.diag[aid]["amount"],
+                    "n_accounts": funding.diag[aid]["n_accounts"],
+                    "total_balance": funding.diag[aid]["total_balance"],
+                    "tier_100": funding.diag[aid]["tier_100"],
+                    "tier_50": funding.diag[aid]["tier_50"],
+                    "tier_20": funding.diag[aid]["tier_20"],
+                    "repeats": funding.diag[aid]["repeats"],
+                    "required_balance": funding.diag[aid]["required_balance"],
+                }
+                for aid in funding.order
+            },
+        }
 
         # Blue team as ONE ensemble object (finding #1: the loop previously
         # received None because this construction didn't exist).
@@ -565,14 +601,15 @@ def get_score(tx_id: str = ""):
         weights_formula = dict(struct.w_formula or {})
         weights_vs_baseline = struct.weights_report()["delta"] if struct.w_formula else {}
     else:
-        prob = sig_scalar["meta"]
-        legacy = score_from_ml_probs(prob, prob, prob)
-        deep = {"score": legacy["score"], "band": legacy["band"],
-                "p_fraud": round(prob, 4),
-                "weights_provenance": {"source": "legacy_fallback"}}
-        weights_source = "legacy_fallback"
-        weights_formula = {}
-        weights_vs_baseline = {}
+        # No fitted structured head available. The legacy branch here used to
+        # feed score_from_ml_probs(prob, prob, prob) — the triple-identical-
+        # meta pattern finding #6 removed — presenting one real signal as
+        # three agreeing ones. Fail loudly instead of re-introducing it.
+        return {"error":
+                "structured score unavailable: fitted head missing and the "
+                "legacy identical-probabilities fallback was removed "
+                "(fabricated-agreement risk). Re-run /api/init or "
+                "scripts/fit_weights.py."}
 
     # Safely format counterfactual object
     cf_raw = deep.get("counterfactual")
@@ -779,6 +816,25 @@ def run_evaluation():
     import numpy as _np
     report = full_report(_np.asarray(y), scores)
     return report
+
+
+@app.get("/api/funding")
+def get_funding():
+    """Per-attack-type funding reservation (Phase 2/audit P2-1c).
+
+    Built at /api/init time from the world state via reserve_funding_pools.
+    A pure function of the world + per-type spec; deterministic per seed.
+    The reservation itself does NOT materialize fraud — it just partitions
+    the funded upper tail into disjoint per-type pools and reports per-tier
+    pool funding so a downstream reader can verify the ring-fence executed.
+    Honest diagnostics: the `warnings` list surfaces pools that could not
+    fully anchor every repeat (tier_100 < eval_repeats).
+    """
+    f = DEMO_STATE.get("funding")
+    if not f:
+        return {"present": False, "note": "funding reservation not yet built; "
+                "call /api/init first."}
+    return {"present": True, **f}
 
 
 @app.get("/api/graph")

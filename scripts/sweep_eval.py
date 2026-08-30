@@ -42,12 +42,30 @@ for _p in (ROOT, SRC, SCRIPTS):
 
 import baseline_eval  # noqa: E402
 from baseline_eval import GenerationShortfallError, evaluate  # noqa: E402
+from _ensure_utf8_stdout import ensure_utf8_stdout  # noqa: E402
+ensure_utf8_stdout()
 
 SCALE_KEY_SEP = "x"
 DEFAULTS = {
     "seeds": [42, 43, 44, 45],
     "scales": [(600, 75, 70), (1200, 150, 70), (1200, 150, 140)],
 }
+
+
+def _fmt_or_invalid(value, fmt: str) -> str:
+    """Format a numeric as `fmt`; return 'INVALID' when None (all-configs shortfall).
+
+    Sweep's summary block can be reached with an empty `mean`/`ci95` when every
+    seed×scale config hits a generation shortfall (fail-loud). Formatting `None`
+    via f"{None:.4f}" raises TypeError. This helper keeps the honest-FAIL
+    summary readable instead of crashing the runner.
+    """
+    if value is None:
+        return "INVALID"
+    try:
+        return format(value, fmt)
+    except (TypeError, ValueError):
+        return "INVALID"
 
 
 def parse_scale(token: str) -> Tuple[int, int, int]:
@@ -146,6 +164,17 @@ def main() -> int:
     ap.add_argument("--boundary-fraction", type=float, default=0.72)
     ap.add_argument("--folds", type=int, default=4)
     ap.add_argument("--gnn-epochs", type=int, default=30)
+    ap.add_argument("--funding-safety", type=float, default=1.25,
+                    help="SAFETY multiplier passed to baseline_eval.evaluate(); "
+                         "larger = more disjoint funding headroom per attack "
+                         "type; if a config still trips the generation gate, "
+                         "raise this OR --replenish-repeats before scaling "
+                         "down the eval slice.")
+    ap.add_argument("--replenish-repeats", action="store_true",
+                    help="Force a twin salary step between eval_repeats "
+                         "iterations to refill drained accounts. Off by "
+                         "default; the ring-fence plus disjoint per-type "
+                         "pools is the primary defense.")
     ap.add_argument("--quiet", action="store_true",
                     help="suppress per-config console output")
     args = ap.parse_args()
@@ -170,6 +199,8 @@ def main() -> int:
                     folds=args.folds, gnn_epochs=args.gnn_epochs,
                     eval_repeats=args.eval_repeats,
                     min_eval_fraud_per_type=args.min_eval_fraud_per_type,
+                    funding_safety=args.funding_safety,
+                    replenish_repeats=args.replenish_repeats,
                 )
                 res["artifact"] = artifact
                 res["log"] = log
@@ -206,6 +237,8 @@ def main() -> int:
             "boundary_fraction": args.boundary_fraction,
             "folds": args.folds,
             "gnn_epochs": args.gnn_epochs,
+            "funding_safety": args.funding_safety,
+            "replenish_repeats": args.replenish_repeats,
         },
         "headline_metric": "meta PR-AUC @ 5% prevalence (fixed prevalence)",
         "headline_note": "per-scale CI across seeds; eval-population caveats "
@@ -215,6 +248,21 @@ def main() -> int:
                        for k, r in per_config.items()},
         "aggregate_by_scale": aggregate,
     }
+    # Surface per-config funding diagnostics so a downstream reader can verify
+    # the ring-fence actually executed per seed×scale (not just at one config).
+    # Path: per_config[key]["artifact"]["funding"] is the baseline_eval block;
+    # stash it under funding_per_config for cheap top-level access.
+    funding_per_config: Dict[str, Any] = {}
+    for k, r in per_config.items():
+        art = r.get("artifact")
+        if isinstance(art, dict) and isinstance(art.get("funding"), dict):
+            funding_per_config[k] = {
+                "exec_order": art["funding"].get("exec_order"),
+                "safety": art["funding"].get("safety"),
+                "reserved_pools": art["funding"].get("reserved_pools"),
+            }
+    if funding_per_config:
+        artifact["funding_per_config"] = funding_per_config
 
     out_dir = os.path.join(ROOT, "artifacts")
     os.makedirs(out_dir, exist_ok=True)
@@ -226,12 +274,17 @@ def main() -> int:
     for sk, agg in sorted(aggregate.items()):
         ok = "OK" if agg["all_configs_valid"] else "INVALID (shortfall)"
         print(f"[sweep] scale={sk:<15} seeds={len(agg['seeds_run'])} status={ok}")
-        print(f"        headline 5% PR-AUC: mean={agg['headline_pr_auc_05']['mean']:.4f} "
-              f"CI95={[f'{v:.4f}' for v in agg['headline_pr_auc_05']['ci95']] or '-'}")
-        print(f"        overall meta PR-AUC: {agg['overall_meta_pr_auc']['mean']:.4f} "
-              f"| XGB-only: {agg['overall_xgb_pr_auc']['mean']:.4f}")
+        ci95 = agg["headline_pr_auc_05"]["ci95"] or []
+        ci95_str = (
+            "[" + ", ".join(_fmt_or_invalid(v, ".4f") for v in ci95) + "]"
+            if ci95 else "-"
+        )
+        print(f"        headline 5% PR-AUC: mean={_fmt_or_invalid(agg['headline_pr_auc_05']['mean'], '.4f')} "
+              f"CI95={ci95_str}")
+        print(f"        overall meta PR-AUC: {_fmt_or_invalid(agg['overall_meta_pr_auc']['mean'], '.4f')} "
+              f"| XGB-only: {_fmt_or_invalid(agg['overall_xgb_pr_auc']['mean'], '.4f')}")
         slate = "  ".join(
-            f"{aid}:{st['recall_above_legit_p95']['mean']:.2f}"
+            f"{aid}:{_fmt_or_invalid(st['recall_above_legit_p95']['mean'], '.2f')}"
             f"(n≥{st['n_fraud_min']})"
             for aid, st in sorted(agg["per_attack_type"].items())
         )
