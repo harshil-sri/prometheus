@@ -1,16 +1,16 @@
 {
   "schema": "prometheus.decorrelation.v1",
-  "generated_at": "2026-08-27T16:37:14",
-  "elapsed_seconds": 4.59,
+  "generated_at": "2026-08-30T07:24:37",
+  "elapsed_seconds": 6.8,
   "config": {
     "seed": 42,
     "accounts": 160,
     "steps": 60,
-    "n_eval": 1158,
-    "n_train_normal": 1142,
+    "n_eval": 1622,
+    "n_train_normal": 1606,
     "n_eval_fraud": 16
   },
-  "fingerprint": "d3e9d8eb85625eae",
+  "fingerprint": "bbc75856c419df9e",
   "columns": [
     "xgb",
     "gnn",
@@ -22,61 +22,67 @@
   "correlation_matrix": [
     [
       1.0,
-      0.1541,
-      0.9998,
-      0.3935,
-      -0.0575,
-      -0.0979
+      0.2037,
+      0.9997,
+      0.3683,
+      0.0145,
+      -0.1303
     ],
     [
-      0.1541,
+      0.2037,
       1.0,
-      0.1514,
-      0.3041,
-      -0.1637,
-      -0.0836
+      0.2025,
+      0.1466,
+      0.0035,
+      -0.173
     ],
     [
-      0.9998,
-      0.1514,
+      0.9997,
+      0.2025,
       1.0,
-      0.3865,
-      -0.0554,
-      -0.0963
+      0.3638,
+      0.0131,
+      -0.1277
     ],
     [
-      0.3935,
-      0.3041,
-      0.3865,
+      0.3683,
+      0.1466,
+      0.3638,
       1.0,
-      -0.1188,
-      -0.0994
+      0.3421,
+      -0.2807
     ],
     [
-      -0.0575,
-      -0.1637,
-      -0.0554,
-      -0.1188,
+      0.0145,
+      0.0035,
+      0.0131,
+      0.3421,
       1.0,
-      0.1313
+      -0.4335
     ],
     [
-      -0.0979,
-      -0.0836,
-      -0.0963,
-      -0.0994,
-      0.1313,
+      -0.1303,
+      -0.173,
+      -0.1277,
+      -0.2807,
+      -0.4335,
       1.0
     ]
   ],
   "separations_auc": {
     "xgb": 1.0,
-    "gnn": 0.851,
+    "gnn": 0.8379,
     "meta": 1.0,
-    "manifold": 0.9844,
-    "spectral_cycle": 0.3989,
-    "spectral_star": 0.309
+    "manifold": 0.9927,
+    "spectral_cycle": 0.547,
+    "spectral_star": 0.1621
   },
-  "max_offdiag_abs_corr": 0.9998,
-  "note": "low |rho| between {xgb,gnn,meta} and {manifold,spectral_*} justifies an eventual 5-way stack; manifold trained on label==0 rows only"
+  "max_offdiag_abs_corr": 0.9997,
+  "note": "low |rho| between {xgb,gnn,meta} and {manifold,spectral_*} justifies an eventual 5-way stack; manifold trained on label==0 rows only",
+  "max_offdiag_pair": {
+    "a": "meta",
+    "b": "xgb",
+    "rho": 0.9997
+  },
+  "collinearity_caution": "|rho(meta, xgb)|=0.9997 > 0.95: near-duplicate; consider dropping one of these two signals or replacing one with a non-redundant variant before claiming a 5-way decorrelated stack."
 }

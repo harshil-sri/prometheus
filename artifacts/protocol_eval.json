@@ -1,12 +1,12 @@
 {
   "schema": "prometheus.protocol_eval.v1",
-  "generated_at": "2026-08-29T14:44:07",
+  "generated_at": "2026-08-30T07:19:31",
   "seed": 42,
   "platform": {
-    "python": "3.14.4",
-    "os": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43"
+    "python": "3.13.11",
+    "os": "Windows-11-10.0.26300-SP0"
   },
-  "runtime_seconds": 0.01,
+  "runtime_seconds": 0.04,
   "config": {
     "cases_per_rc": 3,
     "rng_seed": 7,
@@ -20,7 +20,7 @@
     "held_out_mechanisms": [],
     "seed": 42,
     "fingerprint": "292cc7f67639cea556948086f8303fb248249da14f45b3d4825cca8f0473a162",
-    "locked_at": 1788014647.5610852,
+    "locked_at": 1788054571.1327229,
     "fingerprint_intact": true
   },
   "agentic_payments_logged": 21,

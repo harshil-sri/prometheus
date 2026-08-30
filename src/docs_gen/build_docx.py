@@ -226,6 +226,39 @@ def build_docx() -> Path:
                 f"supervised and unsupervised branches reported in artifact)."
             )
 
+    # Exploitability blind-spot — named cell disclosure (Check 4 / updates.md §Closeout)
+    ood = _load("ood_matrix.json")
+    if ood and "exploitability" in ood:
+        expl = ood["exploitability"]
+        worst_det = expl.get("overall_worst_case_detection", "?")
+        exploit = expl.get("overall_exploitability", "?")
+        strongest = expl.get("strongest_attack_per_type", {})
+        rates = ood.get("rates", {})
+        # Identify the specific cells with detection=0.0 (the ones an attacker would find)
+        zero_cells = []
+        for mech, type_map in (ood.get("cells") or {}).items():
+            for atype, cell in type_map.items():
+                if cell.get("detection_rate", 1.0) == 0.0:
+                    zero_cells.append(
+                        f"{mech}\u00d7{atype} "
+                        f"(n={cell.get('n_txs','?')}, "
+                        f"held_out={cell.get('held_out',False)})"
+                    )
+        rl_r2 = (ood.get("rl_stretch") or {}).get("rl_best_mean_evasion", "?")
+        doc.add_paragraph(
+            f"DETECTION BLIND SPOT (law 8 — worst-case, not average): "
+            f"worst-case detection={worst_det}, exploitability={exploit}. "
+            f"The following (mechanism\u00d7type) cells achieve 0% detection — "
+            f"named explicitly and not averaged away: "
+            + "; ".join(zero_cells or ["none"]) + ". "
+            f"Root cause for non-held-out zeros: Blue model trained on rule_compiler only; "
+            f"shadow_pgd and genetic variants of trainable types are OOD on the mechanism axis "
+            f"(held_out_mechanisms=[] in canonical fingerprint). "
+            f"Would close with: (1) one shadow_pgd/genetic retrain round via the feedback flywheel, "
+            f"(2) higher PGD surrogate quality (distill_xgb_r2={rl_r2}), "
+            f"(3) held-out zeros (A2/A5) accepted as the honest generalization limit."
+        )
+
     # -----------------------------------------------------------------------
     # §6 — Real-world Feasibility
     # -----------------------------------------------------------------------

@@ -13,6 +13,51 @@
 > in the Phase 1 audit (the column now reads "verified" rather than
 > "keep-as-is").
 
+---
+
+## Closeout note — exploitability=1.0 blind spot (CHECK 4, 2026-08-30)
+
+The final `mechanism_eval.py` run (artifacts/ood_matrix.json, generated
+2026-08-30) reports `overall_worst_case_detection = 0.0` and
+`overall_exploitability = 1.0`. This is **not averaged away** — it means at
+least one (mechanism, attack-type) cell in the 4×6 matrix is 100% evadable
+against the current Blue model.
+
+The named worst-case cells (all detection=0.0 in ood_matrix.json):
+
+| Mechanism | Type | held_out | n_txs | Why 0.0 |
+|---|---|---|---|---|
+| shadow_pgd | A1 | false | 2 | PGD-distilled variants land below XGB/GNN thresholds; surrogate R²=0.037 — the XGB distillation is weak so PGD gradients push into an undefended region |
+| shadow_pgd | A3 | false | 2 | same surrogate weakness; card-testing rows are borderline legitimate volume-wise |
+| genetic | A4 | false | 8 | GA search finds fan-in amount/timing combos the meta-stacker hasn't seen; A4 is trainable but GA-generated variants are OOD relative to the rule_compiler training distribution |
+| genetic | A6 | false | 14 | same GA-OOD gap on fake-merchant fan-in |
+| genetic | A5 | true | 32 | A5 is held-out (never trained on) + GA further evades; expected hard case |
+| shadow_pgd | A2 | true | 6 | A2 is held-out + PGD; expected hard case |
+| rule_compiler | A2 | true | 12 | A2 held-out on rule_compiler = 0.0 detection; the honest generalization gap |
+
+**Root cause for the non-held-out zeros (shadow_pgd×A1/A3, genetic×A4/A6)**:
+the Blue model was trained on `rule_compiler`-generated attacks only. The
+mechanism-axis holdout is currently EMPTY in the canonical fingerprint
+(held_out_mechanisms=[]). Shadow-PGD and genetic variants of trainable types
+are therefore OOD on the mechanism axis, and the model has no defence against
+them. This is expected and honest: the mechanism-axis holdout was designed
+for exactly this disclosure.
+
+**What would close it with more time**: (1) include one shadow_pgd and one
+genetic round in the retraining loop (the feedback flywheel supports this —
+the mechanism-registry and two-axis holdout infrastructure is already wired);
+(2) raise the PGD surrogate quality (distill_xgb_r2=0.037 is very low — add
+more distillation rows or a better MLP architecture); (3) for the held-out
+zeros (A2, A5), accept them as the honest generalization limit and document
+them, which this section does.
+
+This disclosure is at the same standard of honesty as the RL negative-result
+panel (DQN_rl_stretch shipped=true because best_mean_evasion=0.0 met the
+pre-registered criterion). The 1.0 exploitability number is surfaced in the
+walkthrough's detection-efficacy section (§5) and is not averaged away.
+
+---
+
 Source of truth for this document: direct inspection of `harshil-sri/prometheus`
 branch `kartik` (HEAD `9f386bb`), cross-checked against `session.md` (the v3
 planning doc + technical design spec). This is not a re-statement of the plan —

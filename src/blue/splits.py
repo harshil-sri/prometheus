@@ -133,6 +133,20 @@ def _fingerprint(held_types: Iterable[str], held_mechs: Iterable[str],
 
     Deterministic across processes/platforms: the lock travels with artifacts,
     so a mismatch is detectable without trusting any session state.
+
+    NOTE on T9 / protocol_structural exclusion from this fingerprint:
+    T9 uses mechanism="protocol_structural" (registered in protocol_attacks.py)
+    and attack_id="T9" (registered via register_attack_types in benchmark_attacks.py).
+    T9 is intentionally absent from the trainable/held-out A1-A6 mechanism-holdout
+    axis computed here. This design decision is recorded in
+    src/attack/benchmark_attacks.py lines 57-61 (pre-existing comment, not ad-hoc):
+    T9 lives in its own independent, deterministic "protocol_eval" evaluation
+    (scripts/protocol_eval.py -> artifacts/protocol_eval.json) with
+    deterministic judges (src/eval/judges.py) rather than the ML mechanism-OOD
+    matrix. Keeping T9 out of the mechanism-holdout fingerprint ensures the
+    canonical baseline lock (fingerprint, train/eval cardinals) is bit-for-bit
+    untouched by the protocol pillar. A future reader who sees protocol_structural
+    absent here should look at scripts/protocol_eval.py for T9's evaluation path.
     """
     payload = {
         "types": sorted(map(str, held_types)),

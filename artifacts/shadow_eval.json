@@ -1,13 +1,13 @@
 {
   "schema": "prometheus.shadow_eval.v1",
-  "generated_at": "2026-08-27T16:01:23",
+  "generated_at": "2026-08-30T07:21:12",
   "seed": 42,
   "platform": {
     "python": "3.13.11",
     "os": "Windows-11-10.0.26300-SP0",
     "cpu_only": true
   },
-  "runtime_seconds": 9.78,
+  "runtime_seconds": 11.61,
   "config": {
     "accounts": 260,
     "steps": 45,
@@ -19,42 +19,42 @@
       "n_queries": 675,
       "n_holdout": 225,
       "xgb_fidelity": {
-        "r2": 0.975,
-        "mae": 0.0019
+        "r2": 0.6658,
+        "mae": 0.0105
       },
       "mlp_fidelity": {
-        "r2": 0.1993,
-        "mae": 0.0421
+        "r2": 0.3611,
+        "mae": 0.0468
       },
       "epochs_mlp": 200
     },
     "verify": {
-      "n_candidates": 15,
-      "n_confirmed": 15,
-      "n_false_hope": 0,
+      "n_candidates": 16,
+      "n_confirmed": 13,
+      "n_false_hope": 3,
       "n_not_evasive": 0,
-      "evasion_rate": 1.0,
-      "mean_true_score_drop": 0.9768,
-      "margin_estimate_min": 0.4455,
-      "margin_estimate_mean": 0.4853,
+      "evasion_rate": 0.8125,
+      "mean_true_score_drop": 0.7476,
+      "margin_estimate_min": 0.0091,
+      "margin_estimate_mean": 0.3821,
       "note": "margins are ESTIMATES derived through a distilled surrogate; approximate by construction and never treated as guarantees",
       "per_candidate": [
         {
           "base_row_index": 0,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 0.9828,
-          "victim_candidate_score": 0.0,
-          "true_score_drop": 0.9828,
+          "victim_base_score": 1.0,
+          "victim_candidate_score": 0.4659,
+          "true_score_drop": 0.5341,
           "outcome": "confirmed_evasion"
         },
         {
           "base_row_index": 1,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 0.9783,
+          "victim_base_score": 0.9855,
           "victim_candidate_score": 0.0,
-          "true_score_drop": 0.9783,
+          "true_score_drop": 0.9855,
           "outcome": "confirmed_evasion"
         },
         {
@@ -62,53 +62,53 @@
           "restart": 0,
           "shadow_score": 0.0,
           "victim_base_score": 1.0,
-          "victim_candidate_score": 0.0036,
-          "true_score_drop": 0.9964,
+          "victim_candidate_score": 0.3115,
+          "true_score_drop": 0.6885,
           "outcome": "confirmed_evasion"
         },
         {
           "base_row_index": 3,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 0.9979,
-          "victim_candidate_score": 0.0,
-          "true_score_drop": 0.9979,
+          "victim_base_score": 1.0,
+          "victim_candidate_score": 0.4909,
+          "true_score_drop": 0.5091,
           "outcome": "confirmed_evasion"
         },
         {
           "base_row_index": 4,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 0.985,
+          "victim_base_score": 0.9898,
           "victim_candidate_score": 0.0,
-          "true_score_drop": 0.985,
+          "true_score_drop": 0.9898,
           "outcome": "confirmed_evasion"
         },
         {
           "base_row_index": 5,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 0.9888,
-          "victim_candidate_score": 0.0,
-          "true_score_drop": 0.9888,
-          "outcome": "confirmed_evasion"
+          "victim_base_score": 1.0,
+          "victim_candidate_score": 0.5234,
+          "true_score_drop": 0.4766,
+          "outcome": "false_hope"
         },
         {
           "base_row_index": 6,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 1.0,
-          "victim_candidate_score": 0.0293,
-          "true_score_drop": 0.9707,
+          "victim_base_score": 0.9962,
+          "victim_candidate_score": 0.0,
+          "true_score_drop": 0.9962,
           "outcome": "confirmed_evasion"
         },
         {
           "base_row_index": 7,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 0.974,
+          "victim_base_score": 0.9923,
           "victim_candidate_score": 0.0,
-          "true_score_drop": 0.974,
+          "true_score_drop": 0.9923,
           "outcome": "confirmed_evasion"
         },
         {
@@ -116,44 +116,44 @@
           "restart": 0,
           "shadow_score": 0.0,
           "victim_base_score": 1.0,
-          "victim_candidate_score": 0.0273,
-          "true_score_drop": 0.9727,
-          "outcome": "confirmed_evasion"
+          "victim_candidate_score": 0.5192,
+          "true_score_drop": 0.4808,
+          "outcome": "false_hope"
         },
         {
           "base_row_index": 9,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 1.0,
-          "victim_candidate_score": 0.0545,
-          "true_score_drop": 0.9455,
+          "victim_base_score": 0.2057,
+          "victim_candidate_score": 0.0,
+          "true_score_drop": 0.2057,
           "outcome": "confirmed_evasion"
         },
         {
           "base_row_index": 10,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 1.0,
-          "victim_candidate_score": 0.0545,
-          "true_score_drop": 0.9455,
+          "victim_base_score": 0.9906,
+          "victim_candidate_score": 0.0,
+          "true_score_drop": 0.9906,
           "outcome": "confirmed_evasion"
         },
         {
           "base_row_index": 11,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 0.9655,
+          "victim_base_score": 0.9883,
           "victim_candidate_score": 0.0,
-          "true_score_drop": 0.9655,
+          "true_score_drop": 0.9883,
           "outcome": "confirmed_evasion"
         },
         {
           "base_row_index": 12,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 1.0,
-          "victim_candidate_score": 0.0018,
-          "true_score_drop": 0.9982,
+          "victim_base_score": 0.9643,
+          "victim_candidate_score": 0.0,
+          "true_score_drop": 0.9643,
           "outcome": "confirmed_evasion"
         },
         {
@@ -161,8 +161,8 @@
           "restart": 0,
           "shadow_score": 0.0,
           "victim_base_score": 1.0,
-          "victim_candidate_score": 0.0141,
-          "true_score_drop": 0.9859,
+          "victim_candidate_score": 0.2645,
+          "true_score_drop": 0.7355,
           "outcome": "confirmed_evasion"
         },
         {
@@ -170,13 +170,22 @@
           "restart": 0,
           "shadow_score": 0.0,
           "victim_base_score": 1.0,
-          "victim_candidate_score": 0.0351,
-          "true_score_drop": 0.9649,
+          "victim_candidate_score": 0.5162,
+          "true_score_drop": 0.4838,
+          "outcome": "false_hope"
+        },
+        {
+          "base_row_index": 15,
+          "restart": 0,
+          "shadow_score": 0.0,
+          "victim_base_score": 0.9412,
+          "victim_candidate_score": 0.0,
+          "true_score_drop": 0.9412,
           "outcome": "confirmed_evasion"
         }
       ]
     },
-    "materialized_rows": 15,
+    "materialized_rows": 13,
     "trajectory_id": "TRAJ_00005"
   },
   "retrain_diag_v1": {
@@ -190,12 +199,12 @@
       "n_queries": 675,
       "n_holdout": 225,
       "xgb_fidelity": {
-        "r2": 0.6617,
-        "mae": 0.0106
+        "r2": 0.8803,
+        "mae": 0.0048
       },
       "mlp_fidelity": {
-        "r2": 0.2314,
-        "mae": 0.0554
+        "r2": 0.5709,
+        "mae": 0.0539
       },
       "epochs_mlp": 200
     },
@@ -205,18 +214,18 @@
       "n_false_hope": 23,
       "n_not_evasive": 0,
       "evasion_rate": 0.0417,
-      "mean_true_score_drop": 0.057,
-      "margin_estimate_min": 0.4022,
-      "margin_estimate_mean": 0.4022,
+      "mean_true_score_drop": 0.0239,
+      "margin_estimate_min": 0.0652,
+      "margin_estimate_mean": 0.0652,
       "note": "margins are ESTIMATES derived through a distilled surrogate; approximate by construction and never treated as guarantees",
       "per_candidate": [
         {
           "base_row_index": 0,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 1.0,
-          "victim_candidate_score": 1.0,
-          "true_score_drop": 0.0,
+          "victim_base_score": 0.9561,
+          "victim_candidate_score": 0.9559,
+          "true_score_drop": 0.0002,
           "outcome": "false_hope"
         },
         {
@@ -224,18 +233,18 @@
           "restart": 0,
           "shadow_score": 0.0,
           "victim_base_score": 1.0,
-          "victim_candidate_score": 1.0,
-          "true_score_drop": 0.0,
+          "victim_candidate_score": 0.9975,
+          "true_score_drop": 0.0025,
           "outcome": "false_hope"
         },
         {
           "base_row_index": 2,
-          "restart": 1,
+          "restart": 0,
           "shadow_score": 0.0,
           "victim_base_score": 1.0,
-          "victim_candidate_score": 0.0978,
-          "true_score_drop": 0.9022,
-          "outcome": "confirmed_evasion"
+          "victim_candidate_score": 1.0,
+          "true_score_drop": 0.0,
+          "outcome": "false_hope"
         },
         {
           "base_row_index": 3,
@@ -250,27 +259,27 @@
           "base_row_index": 4,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 1.0,
-          "victim_candidate_score": 1.0,
-          "true_score_drop": 0.0,
+          "victim_base_score": 0.9558,
+          "victim_candidate_score": 0.9559,
+          "true_score_drop": -0.0001,
           "outcome": "false_hope"
         },
         {
           "base_row_index": 5,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 1.0,
-          "victim_candidate_score": 1.0,
-          "true_score_drop": 0.0,
+          "victim_base_score": 0.9558,
+          "victim_candidate_score": 0.9559,
+          "true_score_drop": -0.0001,
           "outcome": "false_hope"
         },
         {
           "base_row_index": 6,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 0.9936,
-          "victim_candidate_score": 0.9956,
-          "true_score_drop": -0.002,
+          "victim_base_score": 1.0,
+          "victim_candidate_score": 1.0,
+          "true_score_drop": 0.0,
           "outcome": "false_hope"
         },
         {
@@ -295,18 +304,18 @@
           "base_row_index": 9,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 0.9936,
-          "victim_candidate_score": 0.9956,
-          "true_score_drop": -0.002,
-          "outcome": "false_hope"
+          "victim_base_score": 1.0,
+          "victim_candidate_score": 0.4348,
+          "true_score_drop": 0.5652,
+          "outcome": "confirmed_evasion"
         },
         {
           "base_row_index": 10,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 0.9936,
-          "victim_candidate_score": 0.9956,
-          "true_score_drop": -0.002,
+          "victim_base_score": 1.0,
+          "victim_candidate_score": 1.0,
+          "true_score_drop": 0.0,
           "outcome": "false_hope"
         },
         {
@@ -322,18 +331,18 @@
           "base_row_index": 12,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 1.0,
-          "victim_candidate_score": 1.0,
-          "true_score_drop": 0.0,
+          "victim_base_score": 0.9563,
+          "victim_candidate_score": 0.9526,
+          "true_score_drop": 0.0037,
           "outcome": "false_hope"
         },
         {
           "base_row_index": 13,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 0.9974,
-          "victim_candidate_score": 0.9968,
-          "true_score_drop": 0.0006,
+          "victim_base_score": 1.0,
+          "victim_candidate_score": 0.9983,
+          "true_score_drop": 0.0017,
           "outcome": "false_hope"
         },
         {
@@ -349,18 +358,18 @@
           "base_row_index": 15,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 0.9895,
-          "victim_candidate_score": 0.9968,
-          "true_score_drop": -0.0074,
+          "victim_base_score": 1.0,
+          "victim_candidate_score": 1.0,
+          "true_score_drop": 0.0,
           "outcome": "false_hope"
         },
         {
           "base_row_index": 16,
           "restart": 0,
           "shadow_score": 0.0,
-          "victim_base_score": 1.0,
-          "victim_candidate_score": 1.0,
-          "true_score_drop": 0.0,
+          "victim_base_score": 0.9558,
+          "victim_candidate_score": 0.956,
+          "true_score_drop": -0.0001,
           "outcome": "false_hope"
         },
         {
@@ -386,8 +395,8 @@
           "restart": 0,
           "shadow_score": 0.0,
           "victim_base_score": 1.0,
-          "victim_candidate_score": 1.0,
-          "true_score_drop": 0.0,
+          "victim_candidate_score": 0.9996,
+          "true_score_drop": 0.0004,
           "outcome": "false_hope"
         },
         {
@@ -404,8 +413,8 @@
           "restart": 0,
           "shadow_score": 0.0,
           "victim_base_score": 1.0,
-          "victim_candidate_score": 1.0,
-          "true_score_drop": 0.0,
+          "victim_candidate_score": 0.9998,
+          "true_score_drop": 0.0002,
           "outcome": "false_hope"
         },
         {
@@ -419,24 +428,24 @@
         },
         {
           "base_row_index": 23,
-          "restart": 1,
+          "restart": 0,
           "shadow_score": 0.0,
           "victim_base_score": 1.0,
-          "victim_candidate_score": 0.5217,
-          "true_score_drop": 0.4783,
+          "victim_candidate_score": 1.0,
+          "true_score_drop": 0.0,
           "outcome": "false_hope"
         }
       ]
     }
   },
   "adversarial_training_claim": {
-    "evasion_rate_before": 1.0,
+    "evasion_rate_before": 0.8125,
     "evasion_rate_after": 0.0417,
     "improved": true,
     "note": "improved can also come from wider margins when rates tie at zero; margins are ESTIMATES",
     "margin_estimates": {
-      "before": 0.4853,
-      "after": 0.4022
+      "before": 0.3821,
+      "after": 0.0652
     }
   },
   "mechanism_axis_tagged": "shadow_pgd"

@@ -6,7 +6,7 @@
   "n_false_hope": 10,
   "n_not_evasive": 0,
   "evasion_rate": 0.0,
-  "mean_true_score_drop": 0.0375,
+  "mean_true_score_drop": -0.0,
   "margin_estimate_min": null,
   "margin_estimate_mean": null,
   "note": "margins are ESTIMATES derived through a distilled surrogate; approximate by construction and never treated as guarantees",
@@ -21,10 +21,10 @@
     "stats": {
       "min": -0.5,
       "p05": -0.5,
-      "median": -0.4992,
-      "mean": -0.4139,
-      "p95": -0.1807,
-      "max": -0.1192
+      "median": -0.4995,
+      "mean": -0.453,
+      "p95": -0.2631,
+      "max": -0.2318
     },
     "near_boundary": {
       "within_0.05_of_threshold": 0.0,
@@ -32,10 +32,10 @@
     },
     "histogram": {
       "counts": [
-        7,
-        2,
-        0,
+        8,
         1,
+        1,
+        0,
         0,
         0,
         0,
@@ -57,11 +57,11 @@
         0.75
       ]
     },
-    "score_drop_mean": 0.0375,
+    "score_drop_mean": -0.0,
     "vocabulary_law": {
       "label": "empirical estimate",
       "note": "empirical margins from PGD candidate replay against the true ensemble; NOT a verification guarantee"
     }
   },
-  "score_replay_note": "338 oracle queries; distill_xgb_r2=0.9974"
+  "score_replay_note": "338 oracle queries; distill_xgb_r2=0.2533"
 }

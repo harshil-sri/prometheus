@@ -6,7 +6,7 @@
       "prevalence": 0.005,
       "budget": 5.0,
       "recall": 1.0,
-      "precision": 0.2712
+      "precision": 0.3636
     },
     "prev_0.02": {
       "prevalence": 0.02,
@@ -21,14 +21,14 @@
         "fraud_txn_expected": 5.0,
         "alerts_generated": 50.0,
         "est_prevented_frauds": 5.0,
-        "est_false_positives": 48.64
+        "est_false_positives": 48.18
       },
       "inr_breakdown": {
         "gross_saved_by_prevention": 60000.0,
         "review_cost": 2400.0,
-        "false_decline_cost": 12161.0,
-        "net_benefit": 45439.0,
-        "cost_per_prevented_fraud": 2912.2
+        "false_decline_cost": 12045.5,
+        "net_benefit": 45554.5,
+        "cost_per_prevented_fraud": 2889.1
       },
       "assumptions_declared": {
         "avg_fraud_loss_inr": 12000.0,
@@ -40,7 +40,7 @@
         "prevalence": 0.005,
         "budget_pct": 5.0,
         "recall_at_budget": 1.0,
-        "precision_at_budget": 0.2712
+        "precision_at_budget": 0.3636
       }
     },
     "prev_0.02": {
@@ -79,12 +79,12 @@
           "prevalence": 0.005,
           "budget": 5.0,
           "recall": 1.0,
-          "precision": 0.2712
+          "precision": 0.3636
         },
         "net_by_variant": {
-          "base_assumptions": 45439.0,
-          "high_loss_low_cost": 110303.4,
-          "low_loss_high_cost": 14239.0
+          "base_assumptions": 45554.5,
+          "high_loss_low_cost": 110372.7,
+          "low_loss_high_cost": 14354.5
         }
       },
       "prev_0.02": {
