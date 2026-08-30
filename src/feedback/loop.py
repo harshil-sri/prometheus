@@ -21,11 +21,14 @@ Laws enforced here:
 from __future__ import annotations
 
 import json
+import logging
 import random
 from typing import Any, Dict, List, Optional
 
 from blue.splits import assert_no_leakage
 from .evidence import EvidenceStore, require_computed
+
+logger = logging.getLogger(__name__)
 
 MAX_RETRAIN_ROUNDS = 2          # hard cap, enforced below
 DEFAULT_THRESHOLD = 0.5        # calibrated-probability alert line
@@ -179,8 +182,17 @@ class FeedbackLoop:
             from blue.features import build_graph_data
             data, _ = build_graph_data(self._training_pool(),
                                        self.twin.world)
-        except Exception:
-            pass
+        except Exception as exc:                        # noqa: BLE001
+            # Audit P3-3: was a silent `pass` that hid graph-build failures
+            # from the dashboard. Weakness direction is still computed
+            # (falls back to features-only); log the failure so missing-graph
+            # cases are visible in server logs and the Blind-Spot Report
+            # stays auditable.
+            logger.warning(
+                "FeedbackLoop._weakness_for_misses: build_graph_data failed "
+                "(%s: %s); falling back to features-only weakness direction.",
+                type(exc).__name__, exc,
+            )
         return self.sensitivity.weakness_direction(X, data)
 
     def _training_pool(self):

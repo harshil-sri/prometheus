@@ -135,6 +135,26 @@ def main() -> int:
                  "manifold trained on label==0 rows only"),
     }
 
+    # Audit P3-5: identify the pair driving max |off-diag rho| so the
+    # "decorrelated" claim is honest about exactly which channels are
+    # collinear (and which are not).
+    off_diag = corr - np.eye(len(cols))
+    max_idx = int(np.argmax(np.abs(off_diag)))
+    ri, ci = divmod(max_idx, len(cols))
+    max_pair = (cols[ri], cols[ci], float(off_diag[ri, ci]))
+    artifact["max_offdiag_pair"] = {
+        "a": max_pair[0],
+        "b": max_pair[1],
+        "rho": round(max_pair[2], 4),
+    }
+    if abs(max_pair[2]) > 0.95:
+        artifact["collinearity_caution"] = (
+            f"|rho({max_pair[0]}, {max_pair[1]})|={max_pair[2]:.4f} > 0.95: "
+            f"near-duplicate; consider dropping one of these two signals "
+            f"or replacing one with a non-redundant variant before "
+            f"claiming a 5-way decorrelated stack."
+        )
+
     out_dir = os.path.join(ROOT, "artifacts")
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, "decorrelation.json")
@@ -143,7 +163,11 @@ def main() -> int:
     print(f"[signals] corr matrix:\n{np.round(corr, 3)}")
     print(f"[signals] separations: {separations}")
     print(f"[signals] max |off-diag rho| = "
-          f"{artifact['max_offdiag_abs_corr']}")
+          f"{artifact['max_offdiag_abs_corr']} "
+          f"@ ({max_pair[0]}, {max_pair[1]})={max_pair[2]:+.4f}")
+    if abs(max_pair[2]) > 0.95:
+        print(f"[signals] CAUTION: near-duplicate channels — see "
+              f"artifact['collinearity_caution']")
     print(f"[signals] artifact written: {out_path}")
     return 0
 

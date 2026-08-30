@@ -14,7 +14,11 @@ top of the TRUE victim query as terminal reward:
 so the shaped signal can never change the optimal ordering of terminal
 returns (the shaping theorem's guarantee) — it only speeds exploration.
 
-State : normalized [amount, members, days_spread, margin_ratio, dev_bias]
+State : normalized [amount_log10, members, days_spread, margin_ratio] (4-dim;
+        the earlier 5-dim draft included an inert `dev_bias` gene that the
+        genome-space never emitted — see Phase 8 commit `d18d5a1` "drop inert
+        RL genome dim"; `_genome_state` and `_state_to_genome` agree on this
+        4-dim space, and `n_states=4` in the DQN).
 Action: discrete deltas {-2,-1,+1,+2} × one-of-{amount_log, members, days,
         margin} + {submit}
 Env   : each episode builds a genome, optionally submits once.
