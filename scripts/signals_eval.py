@@ -26,9 +26,13 @@ import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "src")
-for _p in (ROOT, SRC):
+SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+for _p in (ROOT, SRC, SCRIPTS_DIR):
     if _p not in sys.path:
         sys.path.insert(0, _p)
+
+from _ensure_utf8_stdout import ensure_utf8_stdout  # noqa: E402
+ensure_utf8_stdout()
 
 import numpy as np                                                        # noqa: E402
 

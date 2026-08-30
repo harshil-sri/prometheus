@@ -54,8 +54,12 @@ from typing import Any, Dict, Optional, Tuple
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_ROOT = os.path.dirname(_SCRIPT_DIR)
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, os.path.join(_PROJECT_ROOT, "src"))
+for _p in (_PROJECT_ROOT, os.path.join(_PROJECT_ROOT, "src"), _SCRIPT_DIR):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+from _ensure_utf8_stdout import ensure_utf8_stdout  # noqa: E402
+ensure_utf8_stdout()
 
 import numpy as np                                   # noqa: E402
 
