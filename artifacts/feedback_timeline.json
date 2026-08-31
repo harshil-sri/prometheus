@@ -235,6 +235,24 @@
         "EVD_28EC3F9453C6",
         "EVD_75AD2C5A46CA"
       ]
+    },
+    {
+      "idx": 13,
+      "source": "demo_session",
+      "seed_used": 180265,
+      "blind_spot": "amount-based anomaly",
+      "recall_before": 0.125,
+      "recall_after": 0.875,
+      "improved": true,
+      "generated_fixes": 24,
+      "retrain_rounds_used": 2,
+      "max_retrain_rounds": 2,
+      "generalization_recall_unseen_generator": 0.5,
+      "evidence_ids": [
+        "EVD_8218868F615C",
+        "EVD_AF5D0A9AABB1",
+        "EVD_75AD2C5A46CA"
+      ]
     }
   ]
 }

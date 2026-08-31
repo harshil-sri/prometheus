@@ -19,6 +19,12 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
 from .guardrails import GuardrailViolation, validate_llm_base_url
 
 logger = logging.getLogger(__name__)

@@ -5,8 +5,16 @@ import os
 import sys
 import random
 import asyncio
+import re
+import urllib.parse
 from typing import Any, Dict, List, Optional
 from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
 
 import numpy as np
 
@@ -870,11 +878,12 @@ def get_graph_trajectories():
     return {"trajectories": list_trajectories_summary(twin.world)}
 
 
-@app.get("/api/graph/node/{node_id}")
+@app.get("/api/graph/node/{node_id:path}")
 def get_graph_node(node_id: str):
     """Get detailed profile for a Knowledge Graph entity node."""
     if not DEMO_STATE["ready"]:
         return {"error": "Not initialized"}
+    node_id = urllib.parse.unquote(node_id)
     twin = DEMO_STATE["twin"]
     bt = DEMO_STATE["blue_team"]
     return extract_node_profile(twin.world, node_id, ensemble=bt)
@@ -900,8 +909,9 @@ def run_investigation(req: InvestigateRequest):
         tx_ids = [t["tx_id"] for t in twin.world.transactions if t.get("is_fraud")][-5:]
         if not tx_ids and twin.world.transactions:
             tx_ids = [twin.world.transactions[-1]["tx_id"]]
+    safe_case_id = re.sub(r"[^A-Za-z0-9_-]", "_", req.case_id) if req.case_id else "CASE_001"
     try:
-        case_report = case_mgr.run_case(req.case_id, tx_ids)
+        case_report = case_mgr.run_case(safe_case_id, tx_ids)
         return case_report
     except Exception as e:
         logger.exception("investigation failed")
