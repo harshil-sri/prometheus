@@ -2427,7 +2427,7 @@ async function investigateSelectedNode() {
     const report = await api('/api/investigate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ case_id: 'CASE_' + nid, tx_ids: txIds }),
+      body: JSON.stringify({ case_id: 'CASE_' + nid.replace(/[^A-Za-z0-9_-]/g, '_'), tx_ids: txIds }),
     });
 
     btn.disabled = false;
