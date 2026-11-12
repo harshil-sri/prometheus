@@ -32,3 +32,12 @@ scratch/
 # Tooling / local overrides
 .gemini/
 src/generate_docx.py
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Agent session logs
+session*.md
+PROMETHEUS_CONTEXT.md

@@ -105,5 +105,5 @@ The 3-beat demo runs via the dashboard:
 ## Graded Artifacts
 
 1. **Runnable GitHub repo** — this repository
-2. **.docx walkthrough** — `Prometheus_Walkthrough.docx` (covers novel attacks, generation/simulation, detection model + efficacy, real-world feasibility)
+2. **.docx walkthrough** — `docs/Prometheus_Walkthrough.docx` (covers novel attacks, generation/simulation, detection model + efficacy, real-world feasibility)
 3. **Working web prototype** — `http://localhost:8000` (FastAPI + single-page HTML/JS)
